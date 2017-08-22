@@ -1,0 +1,2 @@
+- MaxSliceData_Base 选择每个病灶最显著的slice代表此病灶 并且生成numpy 文件，不做其他操作
+- MaxSliceData_Resize 选择每个病灶最显著的slice代表此病灶, 并且放缩到合适的尺寸
