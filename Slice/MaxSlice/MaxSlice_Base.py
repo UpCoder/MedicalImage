@@ -64,12 +64,42 @@ class MaxSlice_Base:
                 self.masks
             )
 
+    # 按照一定分布将数据集拆分为训练集和测试集
+    def split_train_and_validation(self):
+        validation_lesions = []
+        validation_labels = []
+        train_lesions = []
+        train_labels = []
+        for index in range(len(Config.LESION_TYPE)):
+            # 先挑出这个类型的所有病灶
+            lesions = self.roi_images[np.where(self.labels == index)]
+            labels = self.labels[np.where(self.labels == index)]
+            random_index = range(len(lesions))
+            np.random.shuffle(random_index)
+            lesions = lesions[random_index]
+            labels = labels[random_index]
+            validation_num = Config.MaxSlice_Base['VALIDATION_DISTRIBUTION'][index]
+            validation_lesions.extend(lesions[:validation_num])
+            train_lesions.extend(lesions[validation_num:])
+            validation_labels.extend(labels[: validation_num])
+            train_labels.extend(labels[validation_num: ])
+        print 'validation shape is ', np.shape(validation_lesions)
+        print 'train shape is ', np.shape(train_lesions)
+        self.validation_images, self.validation_labels = shuffle_image_label(validation_lesions, validation_labels)
+        self.train_images, self.train_labels = shuffle_image_label(train_lesions, train_labels)
+        print 'validation label is \n', self.validation_labels
+        print 'train_label is \n', self.train_labels
+
     # 将数据打乱
     def shuffle_ROI(self):
         random_index = range(len(self.roi_images))
         np.random.shuffle(random_index)
         self.roi_images = self.roi_images[random_index]
         self.labels = self.labels[random_index]
+
+    # 获取验证集数据
+    def get_validation_images_labels(self):
+        return self.validation_images, self.validation_labels
 
     # 获取next batch data
     # distribution 是指是否按照一定的比例来去batch
@@ -78,36 +108,36 @@ class MaxSlice_Base:
         images = []
         labels = []
         if distribution is None:
-            if end_index >= len(self.roi_images):
+            if end_index >= len(self.train_images):
                 images.extend(
-                    self.roi_images[self.start_index: len(self.roi_images)]
+                    self.train_images[self.start_index: len(self.train_images)]
                 )
                 images.extend(
-                    self.roi_images[:end_index - len(self.roi_images)]
+                    self.train_images[:end_index - len(self.train_images)]
                 )
                 labels.extend(
-                    self.labels[self.start_index: len(self.roi_images)]
+                    self.train_labels[self.start_index: len(self.train_images)]
                 )
                 labels.extend(
-                    self.labels[:end_index - len(self.roi_images)]
+                    self.train_labels[:end_index - len(self.train_images)]
                 )
-                self.start_index = end_index - len(self.roi_images)
+                self.start_index = end_index - len(self.train_images)
                 self.epoch_num += 1
                 # print self.epoch_num
             else:
                 images.extend(
-                    self.roi_images[self.start_index: end_index]
+                    self.train_images[self.start_index: end_index]
                 )
                 labels.extend(
-                    self.labels[self.start_index: end_index]
+                    self.train_labels[self.start_index: end_index]
                 )
                 self.start_index = end_index
         else:
             for index, num in enumerate(distribution):
-                target_indexs = np.where(self.labels == index)[0]
+                target_indexs = np.where(self.train_labels == index)[0]
                 np.random.shuffle(target_indexs)
-                images.extend(self.roi_images[target_indexs[:num]])
-                labels.extend(self.labels[target_indexs[:num]])
+                images.extend(self.train_images[target_indexs[:num]])
+                labels.extend(self.train_labels[target_indexs[:num]])
             images, labels = shuffle_image_label(images, labels)
         return images, labels
     @staticmethod

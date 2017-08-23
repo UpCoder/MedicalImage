@@ -3,7 +3,7 @@
 
 class Config:
     QIXIANGS = ['NC', 'ART', 'PV']
-    LESION_TYPE = ['CYST', 'METS', 'HCC', 'HEM', 'FNH']
+    LESION_TYPE = ['CYST', 'FNH', 'HCC', 'HEM', 'METS']
     LABEL_NUMBER_MAPPING = {
         'CYST': 0,
         'FNH': 1,
@@ -45,7 +45,14 @@ class Config:
                     '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Label2.npy'
                 ]
             ]
-        }
+        },
+        'VALIDATION_DISTRIBUTION': [
+            5,  # CYST
+            5,  # FNH
+            5,  # HCC
+            5,  # HEM
+            5  # METS
+        ]
     }
     MaxSliceDataPATH = [
         '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Image.npy',
@@ -62,7 +69,7 @@ class Config:
         'RESIZE': [
             45, 45
         ],
-        'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resized'
+        'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resized',
     }
 
     MaxSlice_Resize_Zero = {

@@ -131,6 +131,8 @@ def FC_layer(layer_name, x, out_nodes, regularizer=None):
         flat_x = tf.reshape(x, [-1, size])  # flatten into 1D
         x = tf.nn.bias_add(tf.matmul(flat_x, w), b)
         x = tf.nn.relu(x)
+        if regularizer is not None:
+            tf.add_to_collection('losses', regularizer(w))
         return x
 
 

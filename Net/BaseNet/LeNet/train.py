@@ -11,7 +11,7 @@ def train(dataset):
     x = tf.placeholder(
         tf.float32,
         shape=[
-            sub_Config.BATCH_SIZE,
+            None,
             sub_Config.IMAGE_W,
             sub_Config.IMAGE_H,
             sub_Config.IMAGE_CHANNEL
@@ -26,14 +26,15 @@ def train(dataset):
     y_ = tf.placeholder(
         tf.float32,
         shape=[
-            sub_Config.BATCH_SIZE,
+            None,
         ]
     )
     tf.summary.histogram(
         'label',
         y_
     )
-    y = inference(x)
+    regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
+    y = inference(x, regularizer)
     tf.summary.histogram(
         'logits',
         tf.argmax(y, 1)
@@ -43,7 +44,7 @@ def train(dataset):
             logits=y,
             labels=tf.cast(y_, tf.int32)
         )
-    )
+    ) + tf.add_n(tf.get_collection('losses'))
     tf.summary.scalar(
         'loss',
         loss
@@ -53,7 +54,6 @@ def train(dataset):
     ).minimize(
         loss=loss
     )
-
     with tf.variable_scope('accuracy'):
         accuracy_tensor = tf.reduce_mean(
             tf.cast(
@@ -94,15 +94,15 @@ def train(dataset):
                 from PIL import Image
                 image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
                 image.show()
-            images = np.reshape(
-                images[:, :, :, 2],
-                [
-                    sub_Config.BATCH_SIZE,
-                    sub_Config.IMAGE_W,
-                    sub_Config.IMAGE_W,
-                    1
-                ]
-            )
+            # images = np.reshape(
+            #     images[:, :, :, 2],
+            #     [
+            #         sub_Config.BATCH_SIZE,
+            #         sub_Config.IMAGE_W,
+            #         sub_Config.IMAGE_W,
+            #         1
+            #     ]
+            # )
             _, loss_value, accuracy_value, summary = sess.run(
                 [train_op, loss, accuracy_tensor, merge_op],
                 feed_dict={
@@ -115,8 +115,26 @@ def train(dataset):
                 global_step=i
             )
             if i % 20 == 0:
-                print 'step is %d, loss value is %g, accuracy is %g' % \
-                      (i, loss_value, accuracy_value)
+                validation_images, validation_labels = dataset.get_validation_images_labels()
+                validation_images = changed_shape(
+                    validation_images,
+                    [
+                        len(validation_images),
+                        sub_Config.IMAGE_W,
+                        sub_Config.IMAGE_W,
+                        3
+                    ]
+                )
+                validation_accuracy, validation_loss = sess.run(
+                    [accuracy_tensor, loss],
+                    feed_dict={
+                        x: validation_images,
+                        y_: validation_labels
+                    }
+                )
+                print 'step is %d,training loss value is %g,  accuracy is %g ' \
+                      'validation loss value is %g, accuracy is %g' % \
+                      (i, loss_value, accuracy_value, validation_loss, validation_accuracy)
         writer.close()
 if __name__ == '__main__':
     dataset = MaxSlice_Resize(sub_Config)

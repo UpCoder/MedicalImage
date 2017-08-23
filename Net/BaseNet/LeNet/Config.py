@@ -19,7 +19,9 @@ class Config():
     OUTPUT_NODE = 5
     IMAGE_W = 45
     IMAGE_H = 45
-    IMAGE_CHANNEL = 1
+    IMAGE_CHANNEL = 3
+
+    REGULARIZTION_RATE = 1e-2
 
     LEARNING_RATE = 1e-4
 

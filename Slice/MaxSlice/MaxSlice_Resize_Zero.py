@@ -24,6 +24,7 @@ class MaxSlice_Resize_Zero(MaxSlice_Base):
         self.roi_images = np.array(self.roi_images)
         self.labels = np.array(self.labels)
         self.shuffle_ROI()
+        self.split_train_and_validation()
 
     # 将ＲＯＩ保存成图片
     def save_ROI_image(self):

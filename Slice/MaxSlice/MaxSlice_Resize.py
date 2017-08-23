@@ -21,6 +21,7 @@ class MaxSlice_Resize(MaxSlice_Base):
         self.roi_images = np.array(self.roi_images)
         self.labels = np.array(self.labels)
         self.shuffle_ROI()
+        self.split_train_and_validation()
 
     # 将ＲＯＩ保存成图片
     def save_ROI_image(self):
@@ -55,7 +56,7 @@ class MaxSlice_Resize(MaxSlice_Base):
         dataset = MaxSlice_Resize(Config)
         batch_size = 20
         for i in range(100):
-            images, labels = dataset.get_next_batch(batch_size)
+            images, labels = dataset.get_next_batch(batch_size, [10, 10, 10, 10, 10])
             print np.shape(images), np.shape(labels)
             print get_distribution_label(labels)
 if __name__ == '__main__':

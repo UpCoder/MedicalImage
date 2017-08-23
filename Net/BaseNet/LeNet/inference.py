@@ -5,7 +5,7 @@ from Config import Config
 
 
 # 实现ＬｅＮｅｔ网络结构
-def inference(input_tensor):
+def inference(input_tensor, regularizer=None):
     # do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False, regularizer=None):
     conv1_1 = do_conv(
         'conv1_1',
@@ -34,13 +34,15 @@ def inference(input_tensor):
     fc1 = FC_layer(
         'fc1',
         pooling2,
-        Config.FC_SIZE
+        Config.FC_SIZE,
+        regularizer
     )
     fc1 = batch_norm(fc1)
     fc2 = FC_layer(
         'fc2',
         fc1,
-        Config.OUTPUT_NODE
+        Config.OUTPUT_NODE,
+        regularizer
     )
     return fc2
 
