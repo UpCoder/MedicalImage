@@ -15,8 +15,8 @@ class Config:
     NPY_SAVE_PATH = 'E:\\work\\MedicalImage\\data'    # 存储的NPY文件的地址
     RECOVER = True
     BOUNDING_BOX_NOT_LEASION = 0    # 0代表补0 1代表补肝脏密度
-    EXCEL_PATH = 'E:\\Resource\\DataSet\\MedicalImage\\data_origanal.xlsx'
-    IMAGE_SAVE_PATH = 'E:\\work\\MedicalImage\\imgs'
+    EXCEL_PATH = '/home/give/Documents/dataset/MedicalImage/MedicalImage/data_origanal.xlsx'
+    IMAGE_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/imgs'
     LESION_TYPE_RANGE = {
         'CYST': [range(0, 19), range(100, 120)],
         'FNH': [range(19, 29), range(120, 132)],
@@ -24,19 +24,54 @@ class Config:
         'HEM': [range(39, 49), range(152, 172)],
         'METS': [range(49, 59), range(172, 185)],
     }
-    DATASET_PATH = 'E:\\Resource\\DataSet\\MedicalImage'
+    DATASET_PATH = '/home/give/Documents/dataset/MedicalImage/MedicalImage'
+    MaxSlice_Base = {
+        'BASE_DATA_PATH': '/home/give/PycharmProjects/MedicalImage/data',
+        'splited': {
+            'statue': True,
+            'ranges': [
+                range(0, 88),
+                range(99, 200)
+            ],
+            'save_paths': [
+                [
+                    '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Image1.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Mask1.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Label1.npy'
+                ],
+                [
+                    '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Image2.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Mask2.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Label2.npy'
+                ]
+            ]
+        }
+    }
     MaxSliceDataPATH = [
-        'E:\\work\\MedicalImage\\data\\MaxSlice_Image.npy',
-        'E:\\work\\MedicalImage\\data\\MaxSlice_Mask.npy',
-        'E:\\work\\MedicalImage\\data\\MaxSlice_Label.npy'
+        '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Image.npy',
+        '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Mask.npy',
+        '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Label.npy'
     ]
+
     MaxSlice_Resize = {
+
         'SAVE_PATH': [
-            'E:\\work\\MedicalImage\\data\\MaxSlice_Resize_ROI.npy',
-            'E:\\work\\MedicalImage\\data\\MaxSlice_Resize_Label.npy'
+            '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Resize_ROI.npy',
+            '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Resize_Label.npy'
         ],
         'RESIZE': [
             45, 45
         ],
-        'IMAGE_SAVE_PATH': 'E:\\work\\MedicalImage\\imgs\\resized'
+        'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resized'
+    }
+
+    MaxSlice_Resize_Zero = {
+        'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resized_zero',
+        'SAVE_PATH': [
+            '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Resize_Zero_ROI.npy',
+            '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Resize_Zero_Label.npy'
+        ],
+        'RESIZE': [
+            45, 45
+        ],
     }

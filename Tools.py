@@ -40,7 +40,9 @@ def read_file(file_name):
 
 # 读取DICOM文件序列
 def read_dicom_series(dir_name):
-    files = os.listdir(dir_name)
+    print 'read dicom ', dir_name
+    files = list(os.listdir(dir_name))
+    files.sort()
     res = []
     for file in files:
         if file.endswith('DCM'):
@@ -228,12 +230,108 @@ def get_total_masks(dir_path, dirs=['LiverMask', 'TumorMask']):
         tumors['TumorMask'] = tumors_mask
     return tumors
 
+
+# 获取label的分布
+def get_distribution_label(labels):
+    min_value = np.min(labels)
+    max_value = np.max(labels)
+    my_dict = {}
+    for label in labels:
+        if label in my_dict:
+            my_dict[label] += 1
+        else:
+            my_dict[label] = 0
+    return my_dict
+
+
+#　将数据打乱
+def shuffle_image_label(images, labels):
+    images = np.array(images)
+    labels = np.array(labels)
+    random_index = range(len(images))
+    np.random.shuffle(random_index)
+    images = images[random_index]
+    labels = labels[random_index]
+    return images, labels
+
+
+# 将数据按照指定的方式排序
+def changed_shape(image,shape):
+    new_image = np.zeros(
+        shape=shape
+    )
+    batch_size = shape[0]
+    for z in range(batch_size):
+        for phase in range(3):
+            new_image[z, :, :, phase] = image[z, phase, :, :]
+    del image
+    gc.collect()
+    return new_image
+
+
+# 将一幅图像的mask外部全部标记为０
+def mark_outer_zero(image, mask_image):
+    def is_in(x, y, mask):
+        sum1 = np.sum(mask[0:x, y])
+        sum2 = np.sum(mask[x:, y])
+        sum3 = np.sum(mask[x, 0:y])
+        sum4 = np.sum(mask[x, y:])
+        if sum1 != 0 and sum2 != 0 and sum3 != 0 and sum4 != 0:
+            return True
+        return False
+    def fill_region(mask, x, y):
+        queue = Queue.Queue()
+        queue.put([x, y])
+        directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        while not queue.empty():
+            point = queue.get()
+            for direction in directions:
+                new_x = point[0] + direction[0]
+                new_y = point[1] + direction[1]
+                if value_valid([new_x, new_y], np.shape(mask), [0, 0]) and mask[new_x, new_y] == 0:
+                    mask[new_x, new_y] = 1
+                    queue.put([new_x, new_y])
+        return mask
+    [w, h] = np.shape(image)
+    mask_image_copy = mask_image.copy()
+    for i in range(w):
+        find = False
+        for j in range(h):
+            if mask_image_copy[i, j] == 0:
+                if is_in(i, j, mask_image_copy):
+                    print i, j
+                    mask_image_copy[i, j] = 1
+                    mask_image_copy = fill_region(mask_image_copy, i, j)
+                    find = True
+                    image[np.where(mask_image_copy == 0)] = 0
+                    return image, mask_image_copy
+    print 'Error'
+    return image, mask_image_copy
+
+
+# 显示一幅图像
+def show_image(image_arr):
+    image = Image.fromarray(image_arr)
+    image.show()
 if __name__ == '__main__':
     # dicom_path = 'E:\\Resource\\DataSet\\MedicalImage\\METS\METS\\177-2977086\PV'
     # read_dicom_series(dicom_path)
-    splited_path = 'E:\\Resource\\DataSet\\MedicalImage\\HEM\\157-2338414\\TumorMask\\Tumor_Srr157_ART_2_3.mhd'
-    save_paths = [
-        'E:\\Resource\\DataSet\\MedicalImage\\HEM\\157-2338414\\TumorMask\\Tumor_Srr157_ART_2.mhd',
-        'E:\\Resource\\DataSet\\MedicalImage\\HEM\\157-2338414\\TumorMask\\Tumor_Srr157_ART_3.mhd'
-    ]
-    split_mask_image(splited_path, save_paths)
+    series_path = '/home/give/Documents/dataset/MedicalImage/MedicalImage/CYST/000-2945085/ART'
+    mask_image_path = '/home/give/Documents/dataset/MedicalImage/MedicalImage/CYST/000-2945085/TumorMask/TumorMask_Srr000_ART_1.mhd'
+    mask_image = read_mhd_image(mask_image_path)
+    images = read_dicom_series(series_path)
+    images = np.array(images)
+    print np.shape(images)
+    for index, image in enumerate(images):
+        images[index, :, :] = rejust_pixel_value(images[index, :, :])
+    img = Image.fromarray(images[10, :, :])
+    img.show()
+
+    mask_img = Image.fromarray(mask_image[60, :, :] * 255)
+    mask_img.show()
+
+    zero_img, zero_mask = mark_outer_zero(images[10, :, :], mask_image[60, :, :])
+    zero_img = Image.fromarray(zero_img)
+    zero_mask = Image.fromarray(zero_mask * 255)
+    zero_img.show()
+    zero_mask.show()

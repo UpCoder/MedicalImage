@@ -6,78 +6,209 @@ import scipy.io as scio
 import gc
 from ExcelData import ExcelData
 import glob
-from Tools import save_image, get_lesion_type_by_srrid, get_diff_phases_images, get_total_masks, save_image_with_mask
+from Tools import save_image, get_lesion_type_by_srrid, get_diff_phases_images, get_total_masks, save_image_with_mask, shuffle_image_label
 
 
 class MaxSlice_Base:
     def __init__(self, config):
-        if os.path.exists(Config.MaxSliceDataPATH[0]):
-            self.images = np.load(
-                Config.MaxSliceDataPATH[0]
-            )
-            self.masks = np.load(
-                Config.MaxSliceDataPATH[1]
-            )
-            self.labels = np.load(
-                Config.MaxSliceDataPATH[2]
-            )
-            return
         self.lesions_data = ExcelData().lesions_by_srrid
-        self.images, self.labels = MaxSlice_Base.load_images_labels(config, self.lesions_data)
-        np.save(
-            Config.MaxSliceDataPATH[0],
-            self.images
-        )
-        np.save(
-            Config.MaxSliceDataPATH[2],
-            self.labels
-        )
-        del self.images, self.labels
-        gc.collect()
-        self.masks = MaxSlice_Base.load_masks(config, self.lesions_data)
-        np.save(
-            Config.MaxSliceDataPATH[1],
-            self.masks
-        )
+        if config.MaxSlice_Base['splited']['statue']:
+            for range_index, cur_range in enumerate(config.MaxSlice_Base['splited']['ranges']):
+                if not os.path.exists(Config.MaxSlice_Base['splited']['save_paths'][range_index][0]):
+
+                    self.images, self.labels = MaxSlice_Base.load_images_labels(config, self.lesions_data, cur_range)
+                    np.save(
+                        Config.MaxSlice_Base['splited']['save_paths'][range_index][0],
+                        self.images
+                    )
+                    np.save(
+                        Config.MaxSlice_Base['splited']['save_paths'][range_index][2],
+                        self.labels
+                    )
+                    del self.images, self.labels
+                    gc.collect()
+                if not os.path.exists( Config.MaxSlice_Base['splited']['save_paths'][range_index][1]):
+                    self.masks = MaxSlice_Base.load_masks(config, self.lesions_data, cur_range)
+                    np.save(
+                        Config.MaxSlice_Base['splited']['save_paths'][range_index][1],
+                        self.masks
+                    )
+                    del self.masks
+                    gc.collect()
+        else:
+            if os.path.exists(Config.MaxSliceDataPATH[0]):
+                self.images = np.load(
+                    Config.MaxSliceDataPATH[0]
+                )
+                self.masks = np.load(
+                    Config.MaxSliceDataPATH[1]
+                )
+                self.labels = np.load(
+                    Config.MaxSliceDataPATH[2]
+                )
+                return
+            self.images, self.labels = MaxSlice_Base.load_images_labels(config, self.lesions_data, range(0, 200))
+            np.save(
+                Config.MaxSliceDataPATH[0],
+                self.images
+            )
+            np.save(
+                Config.MaxSliceDataPATH[2],
+                self.labels
+            )
+            del self.images, self.labels
+            gc.collect()
+            self.masks = MaxSlice_Base.load_masks(config, self.lesions_data, range(0, 200))
+            np.save(
+                Config.MaxSliceDataPATH[1],
+                self.masks
+            )
+
+    # 将数据打乱
+    def shuffle_ROI(self):
+        random_index = range(len(self.roi_images))
+        np.random.shuffle(random_index)
+        self.roi_images = self.roi_images[random_index]
+        self.labels = self.labels[random_index]
+
+    # 获取next batch data
+    # distribution 是指是否按照一定的比例来去batch
+    def get_next_batch(self, batch_size, distribution = None):
+        end_index = self.start_index + batch_size
+        images = []
+        labels = []
+        if distribution is None:
+            if end_index >= len(self.roi_images):
+                images.extend(
+                    self.roi_images[self.start_index: len(self.roi_images)]
+                )
+                images.extend(
+                    self.roi_images[:end_index - len(self.roi_images)]
+                )
+                labels.extend(
+                    self.labels[self.start_index: len(self.roi_images)]
+                )
+                labels.extend(
+                    self.labels[:end_index - len(self.roi_images)]
+                )
+                self.start_index = end_index - len(self.roi_images)
+                self.epoch_num += 1
+                # print self.epoch_num
+            else:
+                images.extend(
+                    self.roi_images[self.start_index: end_index]
+                )
+                labels.extend(
+                    self.labels[self.start_index: end_index]
+                )
+                self.start_index = end_index
+        else:
+            for index, num in enumerate(distribution):
+                target_indexs = np.where(self.labels == index)[0]
+                np.random.shuffle(target_indexs)
+                images.extend(self.roi_images[target_indexs[:num]])
+                labels.extend(self.labels[target_indexs[:num]])
+            images, labels = shuffle_image_label(images, labels)
+        return images, labels
+    @staticmethod
+    def load_image_mask_label(config):
+        mask_files = glob.glob(config.MaxSlice_Base['BASE_DATA_PATH'] + '/MaxSlice_Mask*.npy')
+        image_files = glob.glob(config.MaxSlice_Base['BASE_DATA_PATH'] + '/MaxSlice_Image*.npy')
+        label_files = glob.glob(config.MaxSlice_Base['BASE_DATA_PATH'] + '/MaxSlice_Label*.npy')
+        masks = []
+        for mask_file in mask_files:
+            masks.extend(
+                np.load(mask_file)
+            )
+        images = []
+        for image_file in image_files:
+            images.extend(
+                np.load(image_file)
+            )
+        labels = []
+        for label_file in label_files:
+            labels.extend(
+                np.load(label_file)
+            )
+        return images, masks, labels
 
     @staticmethod
     def cout_mask_size(config):
-        mask_file_path = config.MaxSliceDataPATH[1]
-        masks = np.load(mask_file_path)
-        avg_y = 0.0
-        avg_x = 0.0
-        min_y = 9999999     # y方向上最小的差距
-        max_y = 0.0     # y方向上最大的差距
-        min_x = 9999999     # x方向上最小的差距
-        max_x = 0.0     # x方向上最大的差距
-        for index, phase_mask in enumerate(masks):
-            print 'index is ', index
-            for mask in phase_mask:
-                [ys, xs] = np.where(mask != 0)
-                if len(ys) == 0:
-                    print 'Error'
-                    continue
-                miny = np.min(ys)
-                maxy = np.max(ys)
-                min_y = min(min_y, (maxy - miny))
-                max_y = max(max_y, (maxy - miny))
-                minx = np.min(xs)
-                maxx = np.max(xs)
-                min_x = min(min_x, (maxx - minx))
-                max_x = max(max_x, (maxx - minx))
-                avg_y += (maxy-miny)
-                avg_x += (maxx-minx)
-                print '(%d, %d)' % (maxy-miny, maxx-minx)
-        print '(%f, %f)' % (avg_y/(len(masks)*3), avg_x/(len(masks)*3))
-        print 'max is (%d, %d)' % (max_y, max_x)
-        print 'min is (%d, %d)' % (min_y, min_x)
+        if config.MaxSlice_Base['splited']['statue']:
+            masks = []
+            avg_y = 0.0
+            avg_x = 0.0
+            min_y = 9999999  # y方向上最小的差距
+            max_y = 0.0  # y方向上最大的差距
+            min_x = 9999999  # x方向上最小的差距
+            max_x = 0.0  # x方向上最大的差距
+            masks_file = glob.glob(config.MaxSlice_Base['BASE_DATA_PATH'] + '/MaxSlice_Mask*.npy')
+            for mask_file in masks_file:
+                masks.extend(
+                    np.load(
+                        mask_file
+                    )
+                )
+            for index, phase_mask in enumerate(masks):
+                print 'index is ', index
+                for mask in phase_mask:
+                    [ys, xs] = np.where(mask != 0)
+                    if len(ys) == 0:
+                        print 'Error'
+                        continue
+                    miny = np.min(ys)
+                    maxy = np.max(ys)
+                    min_y = min(min_y, (maxy - miny))
+                    max_y = max(max_y, (maxy - miny))
+                    minx = np.min(xs)
+                    maxx = np.max(xs)
+                    min_x = min(min_x, (maxx - minx))
+                    max_x = max(max_x, (maxx - minx))
+                    avg_y += (maxy - miny)
+                    avg_x += (maxx - minx)
+                    print '(%d, %d)' % (maxy - miny, maxx - minx)
+            print '(%f, %f)' % (avg_y / (len(masks) * 3), avg_x / (len(masks) * 3))
+            print 'max is (%d, %d)' % (max_y, max_x)
+            print 'min is (%d, %d)' % (min_y, min_x)
+        else:
+            mask_file_path = config.MaxSliceDataPATH[1]
+            masks = np.load(mask_file_path)
+            avg_y = 0.0
+            avg_x = 0.0
+            min_y = 9999999     # y方向上最小的差距
+            max_y = 0.0     # y方向上最大的差距
+            min_x = 9999999     # x方向上最小的差距
+            max_x = 0.0     # x方向上最大的差距
+            for index, phase_mask in enumerate(masks):
+                print 'index is ', index
+                for mask in phase_mask:
+                    [ys, xs] = np.where(mask != 0)
+                    if len(ys) == 0:
+                        print 'Error'
+                        continue
+                    miny = np.min(ys)
+                    maxy = np.max(ys)
+                    min_y = min(min_y, (maxy - miny))
+                    max_y = max(max_y, (maxy - miny))
+                    minx = np.min(xs)
+                    maxx = np.max(xs)
+                    min_x = min(min_x, (maxx - minx))
+                    max_x = max(max_x, (maxx - minx))
+                    avg_y += (maxy-miny)
+                    avg_x += (maxx-minx)
+                    print '(%d, %d)' % (maxy-miny, maxx-minx)
+            print '(%f, %f)' % (avg_y/(len(masks)*3), avg_x/(len(masks)*3))
+            print 'max is (%d, %d)' % (max_y, max_x)
+            print 'min is (%d, %d)' % (min_y, min_x)
 
     @staticmethod
-    def load_images_labels(config, lesions_data):
+    def load_images_labels(config, lesions_data, cur_range):
         image_slices = []
         mask_slices = []
         labels = []
         for key in lesions_data.keys():
+            if key not in cur_range:
+                continue
             srrid = key
             str_srrid = '%03d' % srrid
             lesion_type = get_lesion_type_by_srrid(srrid)
@@ -115,11 +246,13 @@ class MaxSlice_Base:
         return image_slices, labels
 
     @staticmethod
-    def load_masks(config, lesions_data):
+    def load_masks(config, lesions_data, cur_range):
         image_slices = []
         mask_slices = []
         labels = []
         for key in lesions_data.keys():
+            if key not in cur_range:
+                continue
             srrid = key
             str_srrid = '%03d' % srrid
             lesion_type = get_lesion_type_by_srrid(srrid)
@@ -145,8 +278,8 @@ class MaxSlice_Base:
 
     @staticmethod
     def test_unit():
-        # MaxSlice_Base.cout_mask_size(Config)
-        dataset = MaxSlice_Base(Config)
-        print len(dataset.images)
+        MaxSlice_Base.cout_mask_size(Config)
+        # dataset = MaxSlice_Base(Config)
+        # print len(dataset.images)
 if __name__ == '__main__':
     MaxSlice_Base.test_unit()

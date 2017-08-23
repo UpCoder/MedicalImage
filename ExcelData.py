@@ -35,11 +35,15 @@ class ExcelData:
                 glob.glob(os.path.join(Config.DATASET_PATH, lesion_type, srrid[3:] + '-*'))[0],
                 'PV'
             )
-            dicom_file = os.listdir(pv_path)[0]
+            dicom_file_list = os.listdir(pv_path)
+            dicom_file_list.sort()
+            dicom_file = dicom_file_list[0]
             re_pattern = '([0-9]*_[0-9]*_[0-9]*_[0-9]*)'
             re_res = re.match(re_pattern, dicom_file)
             use_str = re_res.group()
             start_index = int(use_str[-5:])
+            # print srrid
+            # print 'start——index is ', start_index
             if convert_RS_int(table.row_values(lesion_index)[RS_PV_index]) < start_index:
                 start_index = 1
             slice_index = [
