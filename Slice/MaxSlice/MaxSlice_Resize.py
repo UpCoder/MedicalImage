@@ -15,19 +15,13 @@ class MaxSlice_Resize(MaxSlice_Base):
         print 'load images shape is ', np.shape(self.images)
         self.roi_images = MaxSlice_Resize.resize_images(self.images, self.masks, config.MaxSlice_Resize['RESIZE'])
         print np.shape(self.roi_images)
-        self.save_ROI_image()
+        self.save_ROI_image(self.config.MaxSlice_Resize['IMAGE_SAVE_PATH'])
         self.start_index = 0
         self.epoch_num = 0
         self.roi_images = np.array(self.roi_images)
         self.labels = np.array(self.labels)
         self.shuffle_ROI()
         self.split_train_and_validation()
-
-    # 将ＲＯＩ保存成图片
-    def save_ROI_image(self):
-        for index, roi_images_phase in enumerate(self.roi_images):
-            for phase_index, roi_image in enumerate(roi_images_phase):
-                save_image(roi_image, os.path.join(self.config.MaxSlice_Resize['IMAGE_SAVE_PATH'], str(index) + '_' + str(phase_index) + '.jpg'))
 
     @staticmethod
     def resize_images(images, masks, new_size):

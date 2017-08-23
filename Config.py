@@ -82,3 +82,15 @@ class Config:
             45, 45
         ],
     }
+
+    MaxSlice_R_Z_AVG = {
+        'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resized_zero_avg',
+    }
+
+    MaxSlice_Multi_Scale = {
+        'sizes': [
+            [45, 45],
+            [20, 20],
+            [100, 100]
+        ]
+    }

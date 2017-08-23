@@ -1,2 +1,5 @@
 - MaxSliceData_Base 选择每个病灶最显著的slice代表此病灶 并且生成numpy 文件，不做其他操作
 - MaxSliceData_Resize 选择每个病灶最显著的slice代表此病灶, 并且放缩到合适的尺寸
+- MaxSlice_Resize_Zero 同MaxSlice_Resize，不过病灶以外地方的ｐｉｘｅｌ设置为０
+- MaxSlice_R_Z_AVG.py 同MaxSlice_Resize_Zero　只不过会减去病灶的平均值
+- MaxSlice_Multi_Scale.py 代表的是将同一个病灶放缩至多种不同的大小，以用来更多的模拟不同的情况

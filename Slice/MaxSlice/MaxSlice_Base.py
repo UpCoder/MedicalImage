@@ -64,6 +64,12 @@ class MaxSlice_Base:
                 self.masks
             )
 
+    # 将ＲＯＩ保存成图片
+    def save_ROI_image(self, path):
+        for index, roi_images_phase in enumerate(self.roi_images):
+            for phase_index, roi_image in enumerate(roi_images_phase):
+                save_image(roi_image, os.path.join(path, str(index) + '_' + str(phase_index) + '.jpg'))
+
     # 按照一定分布将数据集拆分为训练集和测试集
     def split_train_and_validation(self):
         validation_lesions = []
@@ -75,7 +81,7 @@ class MaxSlice_Base:
             lesions = self.roi_images[np.where(self.labels == index)]
             labels = self.labels[np.where(self.labels == index)]
             random_index = range(len(lesions))
-            np.random.shuffle(random_index)
+            # np.random.shuffle(random_index)
             lesions = lesions[random_index]
             labels = labels[random_index]
             validation_num = Config.MaxSlice_Base['VALIDATION_DISTRIBUTION'][index]
@@ -92,11 +98,12 @@ class MaxSlice_Base:
 
     # 将数据打乱
     def shuffle_ROI(self):
+        print 'Before Shuffle', self.labels
         random_index = range(len(self.roi_images))
         np.random.shuffle(random_index)
         self.roi_images = self.roi_images[random_index]
         self.labels = self.labels[random_index]
-
+        print 'After Shuffle', self.labels
     # 获取验证集数据
     def get_validation_images_labels(self):
         return self.validation_images, self.validation_labels
@@ -140,6 +147,7 @@ class MaxSlice_Base:
                 labels.extend(self.train_labels[target_indexs[:num]])
             images, labels = shuffle_image_label(images, labels)
         return images, labels
+
     @staticmethod
     def load_image_mask_label(config):
         mask_files = glob.glob(config.MaxSlice_Base['BASE_DATA_PATH'] + '/MaxSlice_Mask*.npy')
@@ -160,6 +168,7 @@ class MaxSlice_Base:
             labels.extend(
                 np.load(label_file)
             )
+        print labels
         return images, masks, labels
 
     @staticmethod

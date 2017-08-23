@@ -37,9 +37,9 @@ def do_upsample(name, input_tensor, output_channel, output_size, ksize, stride=[
         return x
 
 
-def do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False, regularizer=None):
+def do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False, regularizer=None, reuse=False):
     input_channel = input_tensor.get_shape()[-1]
-    with tf.variable_scope(name):
+    with tf.variable_scope(name, reuse=reuse):
         weights = tf.get_variable(
             'weights',
             shape=[
@@ -107,6 +107,15 @@ def batch_norm(x):
                                   variance_epsilon=epsilon)
     return x
 
+
+def convert_two_dim(x):
+    shape = x.get_shape()
+    if len(shape) == 4:
+        size = shape[1].value * shape[2].value * shape[3].value
+    else:
+        size = shape[-1].value
+    flat_x = tf.reshape(x, [-1, size])  # flatten into 1D
+    return flat_x
 
 def FC_layer(layer_name, x, out_nodes, regularizer=None):
     '''Wrapper for fully connected layers with RELU activation as default

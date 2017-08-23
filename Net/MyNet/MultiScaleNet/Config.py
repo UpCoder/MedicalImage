@@ -1,5 +1,5 @@
 class Config():
-    MODEL_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/'
+    MODEL_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/model/'
     CONV_LAYERS_CONFIG = {
         'conv1_1': {
             'deep': 32,
@@ -46,11 +46,13 @@ class Config():
     ]
 
     OUTPUT_NODE = 5
-    IMAGE_W = 45
-    IMAGE_H = 45
-    IMAGE_CHANNEL = 3
+    sizes = [
+        [45, 45, 3],
+        [20, 20, 3],
+        [100, 100, 3]
+    ]
 
-    REGULARIZTION_RATE = 1.0
+    REGULARIZTION_RATE = 1e-0
 
     LEARNING_RATE = 1e-4
 

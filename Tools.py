@@ -263,7 +263,7 @@ def changed_shape(image,shape):
     batch_size = shape[0]
     for z in range(batch_size):
         for phase in range(3):
-            new_image[z, :, :, phase] = image[z, phase, :, :]
+            new_image[z, :, :, phase] = image[z, phase]
     del image
     gc.collect()
     return new_image

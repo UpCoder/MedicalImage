@@ -7,33 +7,28 @@ from Config import Config
 # 实现ＬｅＮｅｔ网络结构
 def inference(input_tensor, regularizer=None):
     # do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False, regularizer=None):
-    conv1_1 = do_conv(
-        'conv1_1',
-        input_tensor,
-        Config.CONV1_1_DEEP,
-        ksize=[Config.CONV1_1_SIZE,Config.CONV1_1_SIZE],
-        dropout=Config.DROP_OUT
-    )
-    # pool(layer_name, x, kernel=[1,2,2,1], stride=[1, 2, 2, 1], is_max_pool=True):
-    pooling1 = pool(
-        'pooling1',
-        conv1_1,
-    )
-    conv2_1 = do_conv(
-        'conv2_1',
-        pooling1,
-        Config.CONV2_1_DEEP,
-        ksize=[Config.CONV2_1_SIZE, Config.CONV2_1_SIZE],
-        dropout=Config.DROP_OUT
-    )
-    pooling2 = pool(
-        'pooling2',
-        conv2_1
-    )
+    for key in Config.CONV_LAYERS_CONFIG:
+        layer_config = Config.CONV_LAYERS_CONFIG[key]
+        conv_res = do_conv(
+            key,
+            input_tensor,
+            layer_config['deep'],
+            [layer_config['size'], layer_config['size']],
+            dropout=layer_config['dropout']
+
+        )
+        input_tensor = conv_res
+        if layer_config['pooling']['exists']:
+            pooling = pool(
+                layer_config['pooling']['name'],
+                input_tensor
+            )
+            input_tensor = pooling
+
     # FC_layer(layer_name, x, out_nodes, regularizer=None):
     fc1 = FC_layer(
         'fc1',
-        pooling2,
+        input_tensor,
         Config.FC_SIZE,
         regularizer
     )

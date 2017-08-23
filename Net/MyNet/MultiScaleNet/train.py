@@ -9,19 +9,49 @@ import numpy as np
 
 
 def train(dataset, load_model=False):
-    x = tf.placeholder(
+    x1 = tf.placeholder(
         tf.float32,
         shape=[
             None,
-            sub_Config.IMAGE_W,
-            sub_Config.IMAGE_H,
-            sub_Config.IMAGE_CHANNEL
+            sub_Config.sizes[0][0],
+            sub_Config.sizes[0][1],
+            sub_Config.sizes[0][2]
         ],
-        name='input_x'
+        name='input_x1'
+    )
+    x2 = tf.placeholder(
+        tf.float32,
+        shape=[
+            None,
+            sub_Config.sizes[1][0],
+            sub_Config.sizes[1][1],
+            sub_Config.sizes[1][2]
+        ],
+        name='input_x2'
+    )
+    x3 = tf.placeholder(
+        tf.float32,
+        shape=[
+            None,
+            sub_Config.sizes[2][0],
+            sub_Config.sizes[2][1],
+            sub_Config.sizes[2][2]
+        ],
+        name='input_x3'
     )
     tf.summary.image(
-        'input_x',
-        x,
+        'input_x1',
+        x1,
+        max_outputs=10
+    )
+    tf.summary.image(
+        'input_x2',
+        x2,
+        max_outputs=10
+    )
+    tf.summary.image(
+        'input_x2',
+        x3,
         max_outputs=10
     )
     y_ = tf.placeholder(
@@ -35,7 +65,7 @@ def train(dataset, load_model=False):
         y_
     )
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
-    y = inference(x, regularizer)
+    y = inference([x1, x2, x3], regularizer)
     tf.summary.histogram(
         'logits',
         tf.argmax(y, 1)
@@ -69,8 +99,8 @@ def train(dataset, load_model=False):
     saver = tf.train.Saver()
     merge_op = tf.summary.merge_all()
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
 
+        sess.run(tf.global_variables_initializer())
         if load_model:
             saver.restore(sess, sub_Config.MODEL_SAVE_PATH)
         writer = tf.summary.FileWriter(sub_Config.LOG_DIR, tf.get_default_graph())
@@ -88,15 +118,31 @@ def train(dataset, load_model=False):
             #     ]
             # )
             images, labels = dataset.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
-            images = changed_shape(images, [
+            images1 = images[:, 0, :]
+            images2 = images[:, 1, :]
+            images3 = images[:, 2, :]
+            images1 = changed_shape(images1, [
                     sub_Config.BATCH_SIZE,
-                    sub_Config.IMAGE_W,
-                    sub_Config.IMAGE_W,
-                    3
+                    sub_Config.sizes[0][0],
+                    sub_Config.sizes[0][1],
+                    sub_Config.sizes[0][2]
                 ])
+            images2 = changed_shape(images2, [
+                sub_Config.BATCH_SIZE,
+                sub_Config.sizes[1][0],
+                sub_Config.sizes[1][1],
+                sub_Config.sizes[1][2]
+            ])
+            images3 = changed_shape(images3, [
+                sub_Config.BATCH_SIZE,
+                sub_Config.sizes[2][0],
+                sub_Config.sizes[2][1],
+                sub_Config.sizes[2][2]
+            ])
+
             if i == 0:
                 from PIL import Image
-                image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
+                image = Image.fromarray(np.asarray(images3[0, :, :, 0], np.uint8))
                 image.show()
             # images = np.reshape(
             #     images[:, :, :, 2],
@@ -110,7 +156,9 @@ def train(dataset, load_model=False):
             _, loss_value, accuracy_value, summary = sess.run(
                 [train_op, loss, accuracy_tensor, merge_op],
                 feed_dict={
-                    x: images,
+                    x1: images1,
+                    x2: images2,
+                    x3: images3,
                     y_: labels
                 }
             )
@@ -123,19 +171,33 @@ def train(dataset, load_model=False):
                 saver.save(sess, sub_Config.MODEL_SAVE_PATH)
             if i % 20 == 0:
                 validation_images, validation_labels = dataset.get_validation_images_labels()
-                validation_images = changed_shape(
-                    validation_images,
-                    [
-                        len(validation_images),
-                        sub_Config.IMAGE_W,
-                        sub_Config.IMAGE_W,
-                        3
-                    ]
-                )
+                images1 = validation_images[:, 0, :]
+                images2 = validation_images[:, 1, :]
+                images3 = validation_images[:, 2, :]
+                images1 = changed_shape(images1, [
+                    len(validation_images),
+                    sub_Config.sizes[0][0],
+                    sub_Config.sizes[0][1],
+                    sub_Config.sizes[0][2]
+                ])
+                images2 = changed_shape(images2, [
+                    len(validation_images),
+                    sub_Config.sizes[1][0],
+                    sub_Config.sizes[1][1],
+                    sub_Config.sizes[1][2]
+                ])
+                images3 = changed_shape(images3, [
+                    len(validation_images),
+                    sub_Config.sizes[2][0],
+                    sub_Config.sizes[2][1],
+                    sub_Config.sizes[2][2]
+                ])
                 validation_accuracy, validation_loss = sess.run(
                     [accuracy_tensor, loss],
                     feed_dict={
-                        x: validation_images,
+                        x1: images1,
+                        x2: images2,
+                        x3: images3,
                         y_: validation_labels
                     }
                 )
