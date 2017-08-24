@@ -57,7 +57,7 @@ class MaxSlice_Multi_Scale(MaxSlice_Base):
         dataset = MaxSlice_Multi_Scale(Config)
         for per_image in dataset.roi_images:
             for per_size in per_image:
-                print 'resize result is ', np.shape(per_size)
+                print 'resize result is ', np.shape(per_size[0])
         print len(dataset.roi_images)
 
 

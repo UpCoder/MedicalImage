@@ -94,3 +94,26 @@ class Config:
             [100, 100]
         ]
     }
+
+    MaxSlice_Multi_Scale_Zero = {
+        'sizes': [
+            [45, 45],
+            [20, 20],
+            [100, 100]
+        ],
+        'NPY_SAVE_PATH': [
+            [
+                '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Multi_Scale_Zero/scale1.npy',
+                '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Multi_Scale_Zero/label1.npy'
+            ],
+            [
+                '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Multi_Scale_Zero/scale2.npy',
+                '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Multi_Scale_Zero/label2.npy'
+            ],
+            [
+                '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Multi_Scale_Zero/scale3.npy',
+                '/home/give/PycharmProjects/MedicalImage/data/MaxSlice_Multi_Scale_Zero/label3.npy'
+            ]
+        ],
+        'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resize_zero_multi_scale'
+    }

@@ -1,5 +1,11 @@
 class Config():
     MODEL_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/model/'
+    OUTPUT_NODE = 5
+    sizes = [
+        [45, 45, 3],
+        [20, 20, 3],
+        [100, 100, 3]
+    ]
     CONV_LAYERS_CONFIG = {
         'conv1_1': {
             'deep': 32,
@@ -11,7 +17,7 @@ class Config():
             }
         },
         'conv2_1': {
-            'deep': 32,
+            'deep': 64,
             'size': 3,
             'dropout': True,
             'pooling': {
@@ -20,7 +26,7 @@ class Config():
             }
         },
         'conv3_1': {
-            'deep': 64,
+            'deep': 128,
             'size': 3,
             'dropout': True,
             'pooling': {
@@ -28,14 +34,24 @@ class Config():
                 'name': 'pooling3'
             }
         }
-        # 'conv3_1': {
-        #     'deep': 32,
-        #     'size': 3
-        # },
     }
-
-    FC_SIZE = 512
-
+    FC_LAYERS_CONFIG = {
+        # 'fc1': {
+        #     'size': 2048,
+        #     'regularizer': True,
+        #     'batch_norm': True
+        # },
+        'fc2': {
+            'size': 256,
+            'regularizer': True,
+            'batch_norm': True
+        },
+        'fc3': {
+            'size': OUTPUT_NODE,
+            'regularizer': True,
+            'batch_norm': False
+        }
+    }
     BATCH_SIZE = 50
     BATCH_DISTRIBUTION = [
         10,
@@ -45,14 +61,7 @@ class Config():
         10,
     ]
 
-    OUTPUT_NODE = 5
-    sizes = [
-        [45, 45, 3],
-        [20, 20, 3],
-        [100, 100, 3]
-    ]
-
-    REGULARIZTION_RATE = 1e-0
+    REGULARIZTION_RATE = 1e-1
 
     LEARNING_RATE = 1e-4
 
@@ -60,7 +69,8 @@ class Config():
 
     ITERATOE_NUMBER = int(1e+5)
 
-    LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log'
+    TRAIN_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/log/zero/train'
+    VAL_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/log/zero/val'
 
     # IMAGE_W = 28
     # IMAGE_H = 28

@@ -256,7 +256,7 @@ def shuffle_image_label(images, labels):
 
 
 # 将数据按照指定的方式排序
-def changed_shape(image,shape):
+def changed_shape(image, shape):
     new_image = np.zeros(
         shape=shape
     )
@@ -313,6 +313,28 @@ def mark_outer_zero(image, mask_image):
 def show_image(image_arr):
     image = Image.fromarray(image_arr)
     image.show()
+
+
+# 计算Ａｃｃｕｒａｃｙ，并且返回每一类最大错了多少个
+def calculate_acc_error(logits, label, show=True):
+    error_dict = {}
+    error_dict_record = {}
+    error_count = 0
+    for index, logit in enumerate(logits):
+        if logit != label[index]:
+            error_count += 1
+            if label[index] in error_dict.keys():
+                error_dict[label[index]] += 1   # 该类别分类错误的个数加１
+                error_dict_record[label[index]].append(logit)   # 记录错误的结果
+            else:
+                error_dict[label[index]] = 1
+                error_dict_record[label[index]] = [logit]
+    acc = (1.0 * error_count) / (1.0 * len(label))
+    if show:
+        for key in error_dict.keys():
+            print 'label is %d, error number is %d' % (key, error_dict[key])
+            print 'error record　is ', error_dict_record[key]
+    return error_dict, error_dict_record, acc
 if __name__ == '__main__':
     # dicom_path = 'E:\\Resource\\DataSet\\MedicalImage\\METS\METS\\177-2977086\PV'
     # read_dicom_series(dicom_path)

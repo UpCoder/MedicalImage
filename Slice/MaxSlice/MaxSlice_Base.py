@@ -99,11 +99,13 @@ class MaxSlice_Base:
     # 将数据打乱
     def shuffle_ROI(self):
         print 'Before Shuffle', self.labels
+        print 'roiimages len is ', len(self.roi_images)
         random_index = range(len(self.roi_images))
         np.random.shuffle(random_index)
         self.roi_images = self.roi_images[random_index]
         self.labels = self.labels[random_index]
         print 'After Shuffle', self.labels
+
     # 获取验证集数据
     def get_validation_images_labels(self):
         return self.validation_images, self.validation_labels

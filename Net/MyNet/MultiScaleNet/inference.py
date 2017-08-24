@@ -32,21 +32,22 @@ def inference(input_tensors, regularizer=None):
             conv_laerys_output = convert_two_dim(input_tensor)
         else:
             conv_laerys_output = tf.concat([conv_laerys_output, convert_two_dim(input_tensor)], 1)
-
-    fc1 = FC_layer(
-        'fc1',
-        conv_laerys_output,
-        Config.FC_SIZE,
-        regularizer
-    )
-    fc1 = batch_norm(fc1)
-    fc2 = FC_layer(
-        'fc2',
-        fc1,
-        Config.OUTPUT_NODE,
-        regularizer
-    )
-    return fc2
+    input_tensor = conv_laerys_output
+    for key in Config.FC_LAYERS_CONFIG:
+        layer_config = Config.FC_LAYERS_CONFIG[key]
+        if not layer_config['regularizer']:
+            cur_regularizer = None
+        else:
+            cur_regularizer = regularizer
+        input_tensor = FC_layer(
+            key,
+            input_tensor,
+            layer_config['size'],
+            cur_regularizer
+        )
+        if layer_config['batch_norm']:
+            input_tensor = batch_norm(input_tensor)
+    return input_tensor
 
 
 def test_unit():
