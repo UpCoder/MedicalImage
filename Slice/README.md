@@ -1,1 +1,3 @@
-- 本文件夹下面的所有数据形式的单位都是一个slice
+- MaxSlice 本文件夹下面的所有数据形式的单位都是一个slice
+- MaxSlice_Liver 和MaxSlice一样，只不过是对每个像素除以了肝脏的平均密度
+- New Max Slice 系列是使用的/home/give/PycharmProjects/MedicalImage/imgs/resize_liver_zero下面的数据，上面的两个文件使用的数据ｌａｂｅｌ可能有问题

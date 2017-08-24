@@ -56,9 +56,10 @@ class Config():
 
     DROP_OUT = True
 
-    ITERATOE_NUMBER = int(1e+5)
+    ITERATOE_NUMBER = int(1e+4)
 
-    LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log'
+    TRAIN_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/train'
+    VAL_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/val'
 
     # IMAGE_W = 28
     # IMAGE_H = 28

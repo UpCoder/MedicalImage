@@ -295,14 +295,14 @@ def mark_outer_zero(image, mask_image):
     [w, h] = np.shape(image)
     mask_image_copy = mask_image.copy()
     for i in range(w):
-        find = False
+        # find = False
         for j in range(h):
             if mask_image_copy[i, j] == 0:
                 if is_in(i, j, mask_image_copy):
                     print i, j
                     mask_image_copy[i, j] = 1
                     mask_image_copy = fill_region(mask_image_copy, i, j)
-                    find = True
+                    # find = True
                     image[np.where(mask_image_copy == 0)] = 0
                     return image, mask_image_copy
     print 'Error'

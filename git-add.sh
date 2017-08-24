@@ -6,3 +6,4 @@ git add ./Net/MyNet/*.py
 git add ./Net/MyNet/MultiScaleNet/*.py
 git add ./Net/Test/*.py
 git add ./Net/*.py
+git add ./Slice/New_Max_Slice/*.py

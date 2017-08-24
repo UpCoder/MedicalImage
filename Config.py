@@ -117,3 +117,41 @@ class Config:
         ],
         'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resize_zero_multi_scale'
     }
+
+    MaxSlice_Liver_Base = {
+        'BASE_DATA_PATH': '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver',
+        'splited': {
+            'statue': True,
+            'ranges': [
+                range(0, 88),
+                range(99, 200)
+            ],
+            'save_paths': [
+                [
+                    '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Image1.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Mask1.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Label1.npy'
+                ],
+                [
+                    '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Image2.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Mask2.npy',
+                    '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Label2.npy'
+                ]
+            ]
+        },
+        'VALIDATION_DISTRIBUTION': [
+            5,  # CYST
+            5,  # FNH
+            5,  # HCC
+            5,  # HEM
+            5  # METS
+        ]
+    }
+    MaxSlice_Liver_Resize_Zero = {
+        'SAVE_NPY_PATH': [
+            '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Resize_Zero_ROI.npy',
+            '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/MaxSlice_Resize_Zero_Label.npy',
+            '/home/give/PycharmProjects/MedicalImage/data/Sub_Liver/exist.npy',
+        ],
+        'IMAGE_SAVE_PATH': '/home/give/PycharmProjects/MedicalImage/imgs/resize_liver_zero'
+    }

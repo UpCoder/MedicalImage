@@ -21,8 +21,8 @@ def train(dataset, load_model=False):
     )
     tf.summary.image(
         'input_x',
-        x,
-        max_outputs=10
+        x * 120,
+        max_outputs=5
     )
     y_ = tf.placeholder(
         tf.float32,
@@ -73,7 +73,8 @@ def train(dataset, load_model=False):
 
         if load_model:
             saver.restore(sess, sub_Config.MODEL_SAVE_PATH)
-        writer = tf.summary.FileWriter(sub_Config.LOG_DIR, tf.get_default_graph())
+        writer = tf.summary.FileWriter(sub_Config.TRAIN_LOG_DIR, tf.get_default_graph())
+        val_writer = tf.summary.FileWriter(sub_Config.VAL_LOG_DIR, tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
             # images, labels = dataset.train.next_batch(sub_Config.BATCH_SIZE)
             # labels = np.argmax(labels, 1)
@@ -121,7 +122,7 @@ def train(dataset, load_model=False):
             if i % 1000 == 0 and i != 0:
                 # 保存模型
                 saver.save(sess, sub_Config.MODEL_SAVE_PATH)
-            if i % 20 == 0:
+            if i % 100 == 0:
                 validation_images, validation_labels = dataset.get_validation_images_labels()
                 validation_images = changed_shape(
                     validation_images,
@@ -132,17 +133,19 @@ def train(dataset, load_model=False):
                         3
                     ]
                 )
-                validation_accuracy, validation_loss = sess.run(
-                    [accuracy_tensor, loss],
+                validation_accuracy, validation_loss, summary = sess.run(
+                    [accuracy_tensor, loss, merge_op],
                     feed_dict={
                         x: validation_images,
                         y_: validation_labels
                     }
                 )
+                val_writer.add_summary(summary, i)
                 print 'step is %d,training loss value is %g,  accuracy is %g ' \
                       'validation loss value is %g, accuracy is %g' % \
                       (i, loss_value, accuracy_value, validation_loss, validation_accuracy)
         writer.close()
+        val_writer.close()
 if __name__ == '__main__':
     dataset = MaxSlice_Resize(sub_Config)
     # mnist = input_data.read_data_sets("../data", one_hot=True)
