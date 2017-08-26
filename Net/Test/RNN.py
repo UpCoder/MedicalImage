@@ -1,4 +1,4 @@
-from Net.BaseNet.LeNet.train import train
+from Net.MyNet.RNN.train import train
 from Config import Config
 from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
 from Slice.MaxSlice.MaxSlice_Resize_Zero import MaxSlice_Resize_Zero
@@ -21,6 +21,7 @@ if __name__ == '__main__':
     # dataset = Slice_Base_Tumor(new_config)
     # dataset = Slice_Base_Liver(new_config)
     dataset = Slice_Base_Liver_Tumor(new_config, Liver_Tumor_Operations.tumor_linear_enhancement, size=[45, 45])
+    # dataset = Slice_Base_Tumor(new_config)
     train(dataset, load_model=False)
     # mnist = input_data.read_data_sets("../data", one_hot=True)
     # train(mnist)

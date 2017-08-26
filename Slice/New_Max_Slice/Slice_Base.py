@@ -23,6 +23,8 @@ class Slice_Base:
     @staticmethod
     def load_lesions_labels(data_path):
         def open_image_by_path(path):
+            if np.sum(Image.open(path)) == 0:
+                print 'Error, ', path
             return np.array(
                 Image.open(path)
             )

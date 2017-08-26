@@ -117,7 +117,7 @@ def convert_two_dim(x):
     flat_x = tf.reshape(x, [-1, size])  # flatten into 1D
     return flat_x
 
-def FC_layer(layer_name, x, out_nodes, regularizer=None):
+def FC_layer(layer_name, x, out_nodes, regularizer=None, reuse=False):
     '''Wrapper for fully connected layers with RELU activation as default
     Args:
         layer_name: e.g. 'FC1', 'FC2'
@@ -130,7 +130,7 @@ def FC_layer(layer_name, x, out_nodes, regularizer=None):
     else:
         size = shape[-1].value
 
-    with tf.variable_scope(layer_name):
+    with tf.variable_scope(layer_name, reuse=reuse):
         w = tf.get_variable('weights',
                             shape=[size, out_nodes],
                             initializer=tf.contrib.layers.xavier_initializer())

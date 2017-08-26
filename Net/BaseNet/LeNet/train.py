@@ -4,7 +4,7 @@ import tensorflow as tf
 from Config import Config as sub_Config
 from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
 from tensorflow.examples.tutorials.mnist import input_data
-from Tools import changed_shape
+from Tools import changed_shape, calculate_acc_error
 import numpy as np
 
 
@@ -19,11 +19,17 @@ def train(dataset, load_model=False):
         ],
         name='input_x'
     )
-    tf.summary.image(
-        'input_x',
-        x * 120,
-        max_outputs=5
-    )
+    if sub_Config.NEED_MUL:
+        tf.summary.image(
+            'input_x',
+            x * 120,
+            max_outputs=5
+        )
+    else:
+        tf.summary.image(
+            'input_x',
+            x
+        )
     y_ = tf.placeholder(
         tf.float32,
         shape=[
@@ -133,12 +139,17 @@ def train(dataset, load_model=False):
                         3
                     ]
                 )
-                validation_accuracy, validation_loss, summary = sess.run(
-                    [accuracy_tensor, loss, merge_op],
+                validation_accuracy, validation_loss, summary, logits = sess.run(
+                    [accuracy_tensor, loss, merge_op, y],
                     feed_dict={
                         x: validation_images,
                         y_: validation_labels
                     }
+                )
+                calculate_acc_error(
+                    logits=np.argmax(logits, 1),
+                    label=validation_labels,
+                    show=True
                 )
                 val_writer.add_summary(summary, i)
                 print 'step is %d,training loss value is %g,  accuracy is %g ' \

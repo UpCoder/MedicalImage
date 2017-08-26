@@ -1,10 +1,15 @@
 class Config():
     MODEL_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/model/'
     OUTPUT_NODE = 5
+    # sizes = [
+    #     [45, 45, 3],
+    #     [20, 20, 3],
+    #     [100, 100, 3]
+    # ]
     sizes = [
-        [45, 45, 3],
-        [20, 20, 3],
-        [100, 100, 3]
+        [200, 200, 3],
+        [100, 130, 3],
+        [300, 250, 3]
     ]
     CONV_LAYERS_CONFIG = {
         'conv1_1': {
@@ -42,7 +47,7 @@ class Config():
         #     'batch_norm': True
         # },
         'fc2': {
-            'size': 256,
+            'size': 512,
             'regularizer': True,
             'batch_norm': True
         },
@@ -52,13 +57,13 @@ class Config():
             'batch_norm': False
         }
     }
-    BATCH_SIZE = 50
+    BATCH_SIZE = 25
     BATCH_DISTRIBUTION = [
-        10,
-        10,
-        10,
-        10,
-        10,
+        5,
+        5,
+        5,
+        5,
+        5,
     ]
 
     REGULARIZTION_RATE = 1e-1
@@ -67,10 +72,10 @@ class Config():
 
     DROP_OUT = True
 
-    ITERATOE_NUMBER = int(1e+5)
+    ITERATOE_NUMBER = int(1e+4)
 
-    TRAIN_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/log/zero/train'
-    VAL_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/log/zero/val'
+    TRAIN_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/log/liver/train'
+    VAL_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/MultiScaleNet/log/liver/val'
 
     # IMAGE_W = 28
     # IMAGE_H = 28

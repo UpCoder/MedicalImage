@@ -1,4 +1,5 @@
 class Config():
+    NEED_MUL = True
     MODEL_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/'
     CONV_LAYERS_CONFIG = {
         'conv1_1': {
@@ -58,8 +59,8 @@ class Config():
 
     ITERATOE_NUMBER = int(1e+4)
 
-    TRAIN_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/train'
-    VAL_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/val'
+    TRAIN_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/tumor_linear_enhancement/train'
+    VAL_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/tumor_linear_enhancement/val'
 
     # IMAGE_W = 28
     # IMAGE_H = 28

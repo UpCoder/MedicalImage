@@ -310,9 +310,9 @@ def mark_outer_zero(image, mask_image):
 
 
 # 显示一幅图像
-def show_image(image_arr):
+def show_image(image_arr, title=None):
     image = Image.fromarray(image_arr)
-    image.show()
+    image.show(title=title)
 
 
 # 计算Ａｃｃｕｒａｃｙ，并且返回每一类最大错了多少个
