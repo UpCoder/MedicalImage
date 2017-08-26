@@ -4,7 +4,7 @@
 from Slice_Base import Slice_Base
 from Config import Config
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 from Tools import show_image
 
 
@@ -52,6 +52,20 @@ class Slice_Base_Liver_Tumor(Slice_Base):
 
     def extract_roi(self):
         self.extract_roi_function()
+
+    def image_process(self):
+        def smooth(image):
+            img = Image.fromarray(np.asarray(image, np.float32))
+            img = img.filter(ImageFilter.MedianFilter(3))
+            return np.array(img)
+
+        # 我们对ＲＯＩ进行一些平滑操作
+        for i, diff_size_phase_lesion in enumerate(self.rois):
+            for j, diff_phase_lesion in enumerate(diff_size_phase_lesion):
+                for z, single_phase_lesion in enumerate(diff_phase_lesion):
+                    cur_imag = single_phase_lesion
+                    print 'image_size is ', np.shape(cur_imag)
+                    self.rois[i, j, z] = smooth(cur_imag)
 
     def extract_roi_resize(self, new_size):
         self.rois = []
@@ -106,10 +120,4 @@ class Slice_Base_Liver_Tumor(Slice_Base):
             print np.shape(diff_size_phase_lesions[2][0])
 
 if __name__ == '__main__':
-    # Slice_Base_Liver_Tumor(Config).unit_test()
-    liver_image_path = '/home/give/PycharmProjects/MedicalImage/imgs/LiverAndLesion/50_0_4/liver_art.jpg'
-    mask_image_path = '/home/give/PycharmProjects/MedicalImage/imgs/LiverAndLesion/50_0_4/tumor_art.jpg'
-    Liver_Tumor_Operations.tumor_linear_enhancement(
-        np.array(Image.open(liver_image_path)),
-        np.array(Image.open(mask_image_path))
-    )
+    Slice_Base_Liver_Tumor(Config, Liver_Tumor_Operations.tumor_linear_enhancement).unit_test()

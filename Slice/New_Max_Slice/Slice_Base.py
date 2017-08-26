@@ -17,9 +17,11 @@ class Slice_Base:
         self.start_index = 0
         self.livers, self.lesions, self.labels = Slice_Base.load_lesions_labels(self.config.IMAGE_DIR)
         self.extract_roi()  # 提取ＲＯＩ,这个是由子类完成的
+        self.image_process()    # 对提取到的ＲＯＩ进行一些处理
         self.split_train_and_validation()   # 拆分为训练集合和验证集合
 
-
+    def image_process(self):
+        print 'do some operation for roi'
     @staticmethod
     def load_lesions_labels(data_path):
         def open_image_by_path(path):

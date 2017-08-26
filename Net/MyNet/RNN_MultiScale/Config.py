@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 class Config():
     MODEL_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/Net/MyNet/RNN_MultiScale/model/'
     OUTPUT_NODE = 5
@@ -10,7 +11,8 @@ class Config():
     IMAGE_H = 45
     IMAGE_CHANNEL = 1
     NEED_MUL = True
-    STATE_FEATURE_DIM = 2048
+    STATE_FEATURE_DIM = 2048    # 每个尺寸的特征向量的维度
+    SIZE_FEATURE_DIM = 2048     # 每个尺寸的特征向量的维度
     CONV_LAYERS_CONFIG = {
         'conv1_1': {
             'deep': 32,
@@ -18,7 +20,8 @@ class Config():
             'dropout': True,
             'pooling': {
                 'exists': True,
-                'name': 'pooling1'
+                'name': 'pooling1',
+                'is_max': True
             }
         },
         'conv2_1': {
@@ -27,7 +30,8 @@ class Config():
             'dropout': True,
             'pooling': {
                 'exists': True,
-                'name': 'pooling2'
+                'name': 'pooling2',
+                'is_max': True
             }
         },
         'conv3_1': {
@@ -36,7 +40,8 @@ class Config():
             'dropout': True,
             'pooling': {
                 'exists': True,
-                'name': 'pooling3'
+                'name': 'pooling3',
+                'is_max': True
             }
         }
     }

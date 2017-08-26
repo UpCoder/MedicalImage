@@ -10,14 +10,9 @@ def inference(input_tensors, regularizer):
     for index, input_tensor in enumerate(input_tensors):
         # 对于每个尺度的图像，进行下面的ＲＮＮ-Part
         input_shape = input_tensor.get_shape().as_list()
-        state = tf.zeros(
-            [
-                Config.BATCH_SIZE,
-                Config.STATE_FEATURE_DIM
-            ]
-        )
         with tf.variable_scope('rnn-part-'+str(index), reuse=False):
             # 对不同phase之间参数的一样的
+            ONE_SIZE_FEATURE = None
             for i in range(input_shape[3]):
                 if i == 0:
                     reuse = False
@@ -55,15 +50,25 @@ def inference(input_tensors, regularizer):
                 # 完成了卷积操作
                 cur_input = convert_two_dim(cur_input)  # 展成二维的变量
                 print cur_input
-                cur_input = tf.concat([cur_input, state], axis=1)
-                print cur_input
-                state = FC_layer('extract_state', cur_input, Config.STATE_FEATURE_DIM, regularizer, reuse)  # 更新状态
+                if ONE_SIZE_FEATURE is None:
+                    ONE_SIZE_FEATURE = cur_input
+                else:
+                    ONE_SIZE_FEATURE = tf.concat([ONE_SIZE_FEATURE, cur_input], axis=1)
 
+            FC_OUT = FC_layer(
+                'CONVERT-' + str(index),
+                ONE_SIZE_FEATURE,
+                Config.SIZE_FEATURE_DIM,
+                regularizer
+            )
+            FC_OUT = batch_norm(FC_OUT)
+            print 'FC OUT is ', FC_OUT
             if CONV_LAYER_OUT is None:
-                CONV_LAYER_OUT = state
+                CONV_LAYER_OUT = FC_OUT
             else:
-                CONV_LAYER_OUT = tf.concat([CONV_LAYER_OUT, state], axis=1)
-
+                CONV_LAYER_OUT = tf.concat([CONV_LAYER_OUT, FC_OUT], axis=1)
+            print 'CONVLAYEROUT is ', CONV_LAYER_OUT
+    print 'CONVLAYEROUT is ', CONV_LAYER_OUT
     input_tensor = CONV_LAYER_OUT
     for key in Config.FC_LAYERS_CONFIG:
         layer_config = Config.FC_LAYERS_CONFIG[key]

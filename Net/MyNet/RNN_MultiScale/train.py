@@ -5,6 +5,7 @@ from Config import Config as sub_Config
 from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
 from Tools import changed_shape, calculate_acc_error
 import numpy as np
+from param_shared import inference as inference_parllel
 
 
 def train(dataset, load_model=False):
@@ -64,7 +65,7 @@ def train(dataset, load_model=False):
         y_
     )
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
-    y = inference([x1, x2, x3], regularizer)
+    y = inference_parllel([x1, x2, x3], regularizer)
     tf.summary.histogram(
         'logits',
         tf.argmax(y, 1)
