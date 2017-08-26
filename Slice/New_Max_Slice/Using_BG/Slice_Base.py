@@ -144,6 +144,8 @@ class Slice_Base:
         labels = []
         bgs = []
         if distribution is None:
+            print len(self.rois)
+            print len(self.labels)
             if end_index >= len(self.rois):
                 images.extend(
                     self.rois[self.start_index: len(self.rois)]
