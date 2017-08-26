@@ -45,22 +45,21 @@ class Liver_Tumor_Operations:
 class Slice_Base_Liver_Tumor(Slice_Base):
     def __init__(self, config, operation, size=[256, 256]):
         # self.extract_roi_function = self.extract_roi_resize
-        self.extract_roi_function = self.extract_roi_resize
+        self.extract_roi_function = self.extract_roi_diff_size
         self.do_operation_liver_tumor = operation
         self.single_size = size
         Slice_Base.__init__(self, config)
 
     def extract_roi(self):
-        self.extract_roi_function(self.single_size)
+        self.extract_roi_function()
 
-
-    def extract_roi_resize(self, new_size=[256, 256]):
+    def extract_roi_resize(self, new_size):
         self.rois = []
-        for index, diff_phase_lession in enumerate(self.livers):
+        for index, diff_phase_liver in enumerate(self.livers):
             new_diff_phase_lession = []
             print 'label is ', self.labels[index]
-            for index_phase, single_phase_lession in enumerate(diff_phase_lession):
-                single_phase_lession = self.do_operation_liver_tumor(single_phase_lession, self.lesions[index][index_phase])
+            for index_phase, single_phase_liver in enumerate(diff_phase_liver):
+                single_phase_lession = self.do_operation_liver_tumor(single_phase_liver, self.lesions[index][index_phase])
                 [xs, ys] = np.where(single_phase_lession != 0)
                 min_xs = np.min(xs)
                 max_xs = np.max(xs)
@@ -77,11 +76,13 @@ class Slice_Base_Liver_Tumor(Slice_Base):
 
     def extract_roi_diff_size(self, new_sizes=[[45, 45], [20, 20], [100, 100]]):
         self.rois = []
-        for diff_phase_lesion in self.livers:
+        for index, diff_phase_liver in enumerate(self.livers):
             new_diff_size_phase_lesion = []
             for new_size in new_sizes:
                 new_diff_phase_lession = []
-                for single_phase_lesion in diff_phase_lesion:
+                for index_phase, single_phase_liver in enumerate(diff_phase_liver):
+                    single_phase_lesion = self.do_operation_liver_tumor(single_phase_liver,
+                                                                         self.lesions[index][index_phase])
                     [xs, ys] = np.where(single_phase_lesion != 0)
                     min_xs = np.min(xs)
                     max_xs = np.max(xs)
@@ -89,6 +90,7 @@ class Slice_Base_Liver_Tumor(Slice_Base):
                     max_ys = np.max(ys)
                     single_phase_lesion = single_phase_lesion[min_xs:max_xs + 1, min_ys:max_ys + 1]
                     image = Image.fromarray(single_phase_lesion)
+                    # print new_size
                     image = image.resize(new_size)
                     new_diff_phase_lession.append(
                         np.array(image)

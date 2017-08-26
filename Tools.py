@@ -335,6 +335,13 @@ def calculate_acc_error(logits, label, show=True):
             print 'label is %d, error number is %d' % (key, error_dict[key])
             print 'error record　is ', error_dict_record[key]
     return error_dict, error_dict_record, acc
+
+
+def get_shuffle_index(n):
+    random_index = range(n)
+    np.random.shuffle(random_index)
+    return random_index
+
 if __name__ == '__main__':
     # dicom_path = 'E:\\Resource\\DataSet\\MedicalImage\\METS\METS\\177-2977086\PV'
     # read_dicom_series(dicom_path)
