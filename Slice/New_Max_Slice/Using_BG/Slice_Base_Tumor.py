@@ -8,11 +8,11 @@ from PIL import Image
 
 
 class Slice_Base_Tumor(Slice_Base):
-    def __init__(self, config):
+    def __init__(self, path):
         # self.extract_roi_function = self.extract_roi_resize
         self.extract_roi_function = self.extract_roi_resize
         self.extract_roi_bg_function = self.extract_roi_bg_resize
-        Slice_Base.__init__(self, config)
+        Slice_Base.__init__(self, path)
 
     def extract_roi(self):
         self.extract_roi_function()
@@ -80,12 +80,21 @@ class Slice_Base_Tumor(Slice_Base):
             self.rois.append(new_diff_size_phase_lesion)
         self.rois = np.array(self.rois)
 
-    @staticmethod
-    def unit_test():
-        dataset = Slice_Base_Tumor(Config)
-        for index, diff_size_phase_lesions in enumerate(dataset.rois):
-            print np.shape(diff_size_phase_lesions)
-            print np.shape(dataset.rois_bg[index])
+
+class SliceBaseTumorDataset():
+    def __init__(self, config):
+        self.train_dataset = Slice_Base_Tumor(config.TRAIN_IMAGE_DIR)
+        self.val_dataset = Slice_Base_Tumor(config.VALIDATION_IMAGE_DIR)
+
+    def next_train_batch(self, batch_size, distribution=None):
+        return self.train_dataset.get_next_batch(batch_size, distribution)
+
+    def next_val_batch(self, batch_size, distribution=None):
+        return self.val_dataset.get_next_batch(batch_size, distribution)
 
 if __name__ == '__main__':
-    Slice_Base_Tumor(Config).unit_test()
+    dataset = SliceBaseTumorDataset(Config)
+    images, labels, bgs = dataset.next_train_batch(20)
+    print labels
+    images, labels, bgs = dataset.next_val_batch(20)
+    print labels

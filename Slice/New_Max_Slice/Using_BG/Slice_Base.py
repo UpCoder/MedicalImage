@@ -5,24 +5,27 @@ import os
 import numpy as np
 from Tools import shuffle_image_label, get_shuffle_index
 
+
 class Slice_Base:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, path):
         self.rois = []
-        self.train_images = []
-        self.train_labels = []
-        self.train_bg = []
-        self.validation_images = []
-        self.validation_labels = []
-        self.validation_bg = []
         self.epoch_num = 0
         self.start_index = 0
         self.rois_bg = []
-        self.livers, self.lesions, self.labels, self.lesion_bg = Slice_Base.load_lesions_labels(self.config.IMAGE_DIR)
+        self.livers, self.lesions, self.labels, self.lesion_bg = Slice_Base.load_lesions_labels(path)
         self.extract_roi()  # 提取ＲＯＩ,这个是由子类完成的
-        self.extract_roi_bg()
-        self.split_train_and_validation()   # 拆分为训练集合和验证集合
+        self.extract_roi_bg()  # 提取背景的ＲＯＩ,这个是由子类完成的
+        self.shuffle_roi_label()
+        # self.split_train_and_validation()   # 拆分为训练集合和验证集合
 
+    def shuffle_roi_label(self):
+        self.rois = np.array(self.rois)
+        self.rois_bg = np.array(self.rois_bg)
+        self.labels = np.array(self.labels)
+        random_index = get_shuffle_index(len(self.rois_bg))
+        self.rois_bg = self.rois_bg[random_index]
+        self.rois = self.rois[random_index]
+        self.labels = self.labels[random_index]
 
     @staticmethod
     def load_lesions_labels(data_path):
@@ -32,14 +35,13 @@ class Slice_Base:
             return np.array(
                 Image.open(path)
             )
+
         lesions_files = os.listdir(data_path)
         lesions = []
         labels = []
         livers = []
         lesions_bg = []
         for lesion in lesions_files:
-            if lesion in ['TRAIN', 'VAL']:
-                continue
             label = int(lesion[-1])
             labels.append(label)
             liver_art_path = os.path.join(data_path, lesion, 'liver_art.jpg')
@@ -83,6 +85,7 @@ class Slice_Base:
         print 'Slice Base'
         self.rois_bg = []
 
+    '''
     # 按照一定分布将数据集拆分为训练集和测试集
     def split_train_and_validation(self):
         validation_lesions = []
@@ -127,6 +130,8 @@ class Slice_Base:
         print 'validation label is \n', self.validation_labels
         print 'train_label is \n', self.train_labels
 
+    '''
+
     # 获取验证集数据
     def get_validation_images_labels(self):
         return self.validation_images, self.validation_labels, self.validation_bg
@@ -139,44 +144,44 @@ class Slice_Base:
         labels = []
         bgs = []
         if distribution is None:
-            if end_index >= len(self.train_images):
+            if end_index >= len(self.rois):
                 images.extend(
-                    self.train_images[self.start_index: len(self.train_images)]
+                    self.rois[self.start_index: len(self.rois)]
                 )
                 images.extend(
-                    self.train_images[:end_index - len(self.train_images)]
+                    self.rois[:end_index - len(self.rois)]
                 )
                 labels.extend(
-                    self.train_labels[self.start_index: len(self.train_images)]
+                    self.labels[self.start_index: len(self.rois)]
                 )
                 labels.extend(
-                    self.train_labels[:end_index - len(self.train_images)]
+                    self.labels[:end_index - len(self.rois)]
                 )
                 bgs.extend(
-                    self.train_bg[self.start_index: len(self.train_images)]
+                    self.rois_bg[self.start_index: len(self.rois)]
                 )
                 bgs.extend(
-                    self.train_bg[:end_index - len(self.train_images)]
+                    self.rois_bg[:end_index - len(self.rois)]
                 )
-                self.start_index = end_index - len(self.train_images)
+                self.start_index = end_index - len(self.rois)
                 self.epoch_num += 1
                 # print self.epoch_num
             else:
                 images.extend(
-                    self.train_images[self.start_index: end_index]
+                    self.rois[self.start_index: end_index]
                 )
                 labels.extend(
-                    self.train_labels[self.start_index: end_index]
+                    self.labels[self.start_index: end_index]
                 )
-                bgs.extend(self.train_bg[self.start_index: end_index])
+                bgs.extend(self.rois_bg[self.start_index: end_index])
                 self.start_index = end_index
         else:
             for index, num in enumerate(distribution):
-                target_indexs = np.where(self.train_labels == index)[0]
+                target_indexs = np.where(self.labels == index)[0]
                 np.random.shuffle(target_indexs)
-                images.extend(self.train_images[target_indexs[:num]])
-                labels.extend(self.train_labels[target_indexs[:num]])
-                bgs.extend(self.train_bg[target_indexs[:num]])
+                images.extend(self.rois[target_indexs[:num]])
+                labels.extend(self.labels[target_indexs[:num]])
+                bgs.extend(self.rois_bg[target_indexs[:num]])
         images = np.array(images)
         labels = np.array(labels)
         bgs = np.array(bgs)

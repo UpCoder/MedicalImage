@@ -71,13 +71,13 @@ class Config():
     }
     FC_SIZE = 512
 
-    BATCH_SIZE = 50
+    BATCH_SIZE = 40
     BATCH_DISTRIBUTION = [
-        10,
-        10,
-        10,
-        10,
-        10,
+        8,
+        8,
+        8,
+        8,
+        8,
     ]
 
     OUTPUT_NODE = 5
@@ -87,7 +87,7 @@ class Config():
     BG_H = 60
     IMAGE_CHANNEL = 3
 
-    REGULARIZTION_RATE = 1.0
+    REGULARIZTION_RATE = 0.000000001
 
     LEARNING_RATE = 1e-4
 

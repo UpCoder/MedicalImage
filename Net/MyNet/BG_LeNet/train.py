@@ -110,7 +110,7 @@ def train(dataset, load_model=False):
             #         sub_Config.IMAGE_CHANNEL
             #     ]
             # )
-            images, labels, bgs = dataset.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
+            images, labels, bgs = dataset.next_train_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
             images = changed_shape(images, [
                     sub_Config.BATCH_SIZE,
                     sub_Config.IMAGE_W,
@@ -153,7 +153,7 @@ def train(dataset, load_model=False):
                 # 保存模型
                 saver.save(sess, sub_Config.MODEL_SAVE_PATH)
             if i % 100 == 0:
-                validation_images, validation_labels, validation_bgs = dataset.get_validation_images_labels()
+                validation_images, validation_labels, validation_bgs = dataset.next_val_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
                 validation_images = changed_shape(
                     validation_images,
                     [
