@@ -342,25 +342,21 @@ def get_shuffle_index(n):
     np.random.shuffle(random_index)
     return random_index
 
+
+# 对所有病灶进行线性增强
+def linear_enhancement(path='/home/give/PycharmProjects/MedicalImage/imgs/LiverAndLesion_bg/TRAIN'):
+    image_dirs = os.listdir(path)
+    for image_dir in image_dirs:
+        for phase in ['nc', 'art', 'pv']:
+            liver_path = os.path.join(path, image_dir, 'liver_' + phase + '.jpg')
+            tumor_path = os.path.join(path, image_dir, 'tumor_' + phase + '.jpg')
+            liver_image = Image.open(liver_path)
+            tumor_image = Image.open(tumor_path)
+            from Slice.TwoFolderMaxSlice.Slice_Base_Liver_Tumor import Liver_Tumor_Operations
+            new_tumor = Liver_Tumor_Operations.tumor_linear_enhancement_only_tumor(tumor_image=np.array(tumor_image))
+            new_path = os.path.join(path, image_dir, 'tumor_' + phase + '_enhancement.jpg')
+            image = Image.fromarray(np.asarray(new_tumor, np.uint8))
+            image.save(new_path)
+
 if __name__ == '__main__':
-    # dicom_path = 'E:\\Resource\\DataSet\\MedicalImage\\METS\METS\\177-2977086\PV'
-    # read_dicom_series(dicom_path)
-    series_path = '/home/give/Documents/dataset/MedicalImage/MedicalImage/CYST/000-2945085/ART'
-    mask_image_path = '/home/give/Documents/dataset/MedicalImage/MedicalImage/CYST/000-2945085/TumorMask/TumorMask_Srr000_ART_1.mhd'
-    mask_image = read_mhd_image(mask_image_path)
-    images = read_dicom_series(series_path)
-    images = np.array(images)
-    print np.shape(images)
-    for index, image in enumerate(images):
-        images[index, :, :] = rejust_pixel_value(images[index, :, :])
-    img = Image.fromarray(images[10, :, :])
-    img.show()
-
-    mask_img = Image.fromarray(mask_image[60, :, :] * 255)
-    mask_img.show()
-
-    zero_img, zero_mask = mark_outer_zero(images[10, :, :], mask_image[60, :, :])
-    zero_img = Image.fromarray(zero_img)
-    zero_mask = Image.fromarray(zero_mask * 255)
-    zero_img.show()
-    zero_mask.show()
+    linear_enhancement()

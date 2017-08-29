@@ -19,6 +19,16 @@ class Config():
             'size': 3,
             'dropout': True,
             'pooling': {
+                'exists': False,
+                'name': 'pooling1',
+                'is_max': True
+            }
+        },
+        'conv1_2': {
+            'deep': 32,
+            'size': 3,
+            'dropout': True,
+            'pooling': {
                 'exists': True,
                 'name': 'pooling1',
                 'is_max': True

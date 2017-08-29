@@ -11,3 +11,4 @@ git add ./Slice/New_Max_Slice/Using_BG/*.py
 git add ./Net/MyNet/BG_LeNet/*.py
 git add ./Net/MyNet/RNN_MultiScale/*.py
 git add ./Net/MyNet/BG_RNN_MultiScale/*.py
+git add ./Slice/TwoFolderMaxSlice/*.py
