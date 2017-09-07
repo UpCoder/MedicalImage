@@ -7,6 +7,7 @@ import tensorflow as tf
 # input_tensor [batch_size, w, h, 3]
 def inference(input_tensors, regularizer):
     CONV_LAYER_OUT = None
+    params_shared = False
     for index, input_tensor in enumerate(input_tensors):
         # 对于每个尺度的图像，进行下面的ＲＮＮ-Part
         input_shape = input_tensor.get_shape().as_list()
@@ -30,6 +31,7 @@ def inference(input_tensors, regularizer):
                 )
                 for key in Config.CONV_LAYERS_CONFIG:
                     layer_config = Config.CONV_LAYERS_CONFIG[key]
+                    cur_input = batch_norm(cur_input)
                     conv_res = do_conv(
                         key,
                         cur_input,

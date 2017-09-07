@@ -9,7 +9,8 @@ class Config():
             'pooling': {
                 'exists': True,
                 'name': 'pooling1'
-            }
+            },
+            'batch_norm': True
         },
         'conv2_1': {
             'deep': 32,
@@ -18,7 +19,8 @@ class Config():
             'pooling': {
                 'exists': True,
                 'name': 'pooling2'
-            }
+            },
+            'batch_norm': True
         },
         'conv3_1': {
             'deep': 64,
@@ -27,7 +29,8 @@ class Config():
             'pooling': {
                 'exists': True,
                 'name': 'pooling3'
-            }
+            },
+            'batch_norm': True
         }
         # 'conv3_1': {
         #     'deep': 32,
@@ -37,7 +40,7 @@ class Config():
 
     FC_SIZE = 512
 
-    BATCH_SIZE = 50
+    BATCH_SIZE = 800
     BATCH_DISTRIBUTION = [
         10,
         10,
@@ -47,12 +50,12 @@ class Config():
     ]
 
     OUTPUT_NODE = 5
-    IMAGE_W = 45
-    IMAGE_H = 45
-    IMAGE_CHANNEL = 3
+    IMAGE_W = 64
+    IMAGE_H = 64
+    IMAGE_CHANNEL = 1
 
-    REGULARIZTION_RATE = 1.0
-
+    REGULARIZTION_RATE = 1e-20
+    MOVING_AVERAGE_DECAY = 0.997
     LEARNING_RATE = 1e-4
 
     DROP_OUT = True

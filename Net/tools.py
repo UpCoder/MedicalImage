@@ -37,7 +37,8 @@ def do_upsample(name, input_tensor, output_channel, output_size, ksize, stride=[
         return x
 
 
-def do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False, regularizer=None, reuse=False):
+def do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False,
+            regularizer=None, reuse=False, batch_normalization=False):
     input_channel = input_tensor.get_shape()[-1]
     with tf.variable_scope(name, reuse=reuse):
         weights = tf.get_variable(
@@ -73,6 +74,8 @@ def do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pret
         x = tf.nn.relu(x, name='relu')
         if dropout:
             x = tf.nn.dropout(x, 0.5)
+        if batch_normalization:
+            x = batch_norm(x)
         return x
 
 
@@ -117,7 +120,7 @@ def convert_two_dim(x):
     flat_x = tf.reshape(x, [-1, size])  # flatten into 1D
     return flat_x
 
-def FC_layer(layer_name, x, out_nodes, regularizer=None, reuse=False):
+def FC_layer(layer_name, x, out_nodes, regularizer=None, reuse=False, dropout=False):
     '''Wrapper for fully connected layers with RELU activation as default
     Args:
         layer_name: e.g. 'FC1', 'FC2'
@@ -142,6 +145,8 @@ def FC_layer(layer_name, x, out_nodes, regularizer=None, reuse=False):
         x = tf.nn.relu(x)
         if regularizer is not None:
             tf.add_to_collection('losses', regularizer(w))
+        if dropout is not False:
+            x = tf.nn.dropout(x, 0.5)
         return x
 
 

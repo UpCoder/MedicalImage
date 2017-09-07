@@ -64,11 +64,18 @@ def train(dataset, load_model=False):
         'label',
         y_
     )
+    global_step = tf.Variable(0, trainable=False)
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
     y = inference_parllel([x1, x2, x3], regularizer)
     tf.summary.histogram(
         'logits',
         tf.argmax(y, 1)
+    )
+    variable_averages = tf.train.ExponentialMovingAverage(
+        sub_Config.MOVING_AVERAGE_DECAY, global_step
+    )
+    variable_averages_op = variable_averages.apply(
+        tf.trainable_variables()
     )
     loss = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -80,11 +87,15 @@ def train(dataset, load_model=False):
         'loss',
         loss
     )
-    train_op = tf.train.GradientDescentOptimizer(
+    train_step = tf.train.GradientDescentOptimizer(
         learning_rate=sub_Config.LEARNING_RATE
     ).minimize(
-        loss=loss
+        loss=loss,
+        global_step=global_step
     )
+    with tf.control_dependencies([train_step, variable_averages_op]):
+        train_op = tf.no_op(name='train')
+
     with tf.variable_scope('accuracy'):
         accuracy_tensor = tf.reduce_mean(
             tf.cast(
@@ -154,8 +165,8 @@ def train(dataset, load_model=False):
             #         1
             #     ]
             # )
-            _, loss_value, accuracy_value, summary = sess.run(
-                [train_op, loss, accuracy_tensor, merge_op],
+            _, loss_value, accuracy_value, summary, global_step_value = sess.run(
+                [train_op, loss, accuracy_tensor, merge_op, global_step],
                 feed_dict={
                     x1: images1,
                     x2: images2,
@@ -209,7 +220,7 @@ def train(dataset, load_model=False):
                 )
                 print 'step is %d,training loss value is %g,  accuracy is %g ' \
                       'validation loss value is %g, accuracy is %g' % \
-                      (i, loss_value, accuracy_value, validation_loss, validation_accuracy)
+                      (global_step_value, loss_value, accuracy_value, validation_loss, validation_accuracy)
                 val_writer.add_summary(summary, i)
         writer.close()
         val_writer.close()

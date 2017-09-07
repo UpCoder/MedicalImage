@@ -65,6 +65,20 @@ def save_mhd_image(image, file_name):
     itk.WriteImage(header, file_name)
 
 
+# 一次读取多个ｍｈｄ文件，然后统一放缩至指定大小
+def read_mhd_images(paths, new_size=None):
+    images = []
+    for path in paths:
+        # print path
+        cur_image = read_mhd_image(path)
+        if new_size is not None:
+            cur_img = Image.fromarray(np.asarray(cur_image, np.float32))
+            cur_img = cur_img.resize(new_size)
+            #print np.shape(cur_img), path
+            cur_image = np.array(cur_img)
+        images.append(cur_image)
+    return images
+
 # 将灰度图像转化为RGB通道
 def conver_image_RGB(gray_image):
     shape = list(np.shape(gray_image))
@@ -246,6 +260,8 @@ def get_distribution_label(labels):
 
 #　将数据打乱
 def shuffle_image_label(images, labels):
+    print len(images)
+    print len(labels)
     images = np.array(images)
     labels = np.array(labels)
     random_index = range(len(images))
@@ -262,8 +278,8 @@ def changed_shape(image, shape):
     )
     batch_size = shape[0]
     for z in range(batch_size):
-        for phase in range(3):
-            new_image[z, :, :, phase] = image[z, phase]
+        for phase in range(shape[-1]):
+            new_image[z, :, :, phase] = image[z]
     del image
     gc.collect()
     return new_image
@@ -317,9 +333,11 @@ def show_image(image_arr, title=None):
 
 # 计算Ａｃｃｕｒａｃｙ，并且返回每一类最大错了多少个
 def calculate_acc_error(logits, label, show=True):
+    error_index = []
     error_dict = {}
     error_dict_record = {}
     error_count = 0
+    error_record = []
     for index, logit in enumerate(logits):
         if logit != label[index]:
             error_count += 1
@@ -329,12 +347,14 @@ def calculate_acc_error(logits, label, show=True):
             else:
                 error_dict[label[index]] = 1
                 error_dict_record[label[index]] = [logit]
+            error_index.append(index)
+            error_record.append(logit)
     acc = (1.0 * error_count) / (1.0 * len(label))
     if show:
         for key in error_dict.keys():
             print 'label is %d, error number is %d' % (key, error_dict[key])
             print 'error record　is ', error_dict_record[key]
-    return error_dict, error_dict_record, acc
+    return error_dict, error_dict_record, acc, error_index, error_record
 
 
 def get_shuffle_index(n):

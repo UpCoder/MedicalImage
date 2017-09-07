@@ -81,9 +81,9 @@ class Config():
         7,
     ]
 
-    REGULARIZTION_RATE = 1e-2
-
-    LEARNING_RATE = 1e-4
+    REGULARIZTION_RATE = 1e-3
+    MOVING_AVERAGE_DECAY = 0.9997
+    LEARNING_RATE = 1e-3
 
     DROP_OUT = True
 

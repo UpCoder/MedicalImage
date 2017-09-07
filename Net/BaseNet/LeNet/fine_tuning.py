@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 使用ｐａｔｃｈ训练好的模型，来对ＲＯＩ进行微调
 from inference import inference
 import tensorflow as tf
 from Config import Config as sub_Config
@@ -6,11 +7,11 @@ from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
 from tensorflow.examples.tutorials.mnist import input_data
 from Tools import changed_shape, calculate_acc_error
 import numpy as np
-from Patch.PatchBase import PatchDataSet
+from Patch.ValData import ValDataSet
 from Patch.Config import Config as patch_config
 
 
-def train(dataset, load_model_path, save_model_path):
+def train(train_data_set, val_data_set, load_model_path, save_model_path):
     x = tf.placeholder(
         tf.float32,
         shape=[
@@ -42,12 +43,12 @@ def train(dataset, load_model_path, save_model_path):
         'label',
         y_
     )
-    global_step = tf.Variable(0, trainable=False)
-    variable_average = tf.train.ExponentialMovingAverage(
-        sub_Config.MOVING_AVERAGE_DECAY,
-        global_step
-    )
-    vaeriable_average_op = variable_average.apply(tf.trainable_variables())
+    # global_step = tf.Variable(0, trainable=False)
+    # variable_average = tf.train.ExponentialMovingAverage(
+    #     sub_Config.MOVING_AVERAGE_DECAY,
+    #     global_step
+    # )
+    # vaeriable_average_op = variable_average.apply(tf.trainable_variables())
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
     y = inference(x, regularizer)
     tf.summary.histogram(
@@ -67,8 +68,12 @@ def train(dataset, load_model_path, save_model_path):
     train_op = tf.train.GradientDescentOptimizer(
         learning_rate=sub_Config.LEARNING_RATE
     ).minimize(
-        loss=loss
+        loss=loss,
+        # global_step=global_step
     )
+    # with tf.control_dependencies([train_step, vaeriable_average_op]):
+    #     train_op = tf.no_op(name='train')
+
     with tf.variable_scope('accuracy'):
         accuracy_tensor = tf.reduce_mean(
             tf.cast(
@@ -87,23 +92,10 @@ def train(dataset, load_model_path, save_model_path):
 
         if load_model_path:
             saver.restore(sess, load_model_path)
-        writer = tf.summary.FileWriter(sub_Config.TRAIN_LOG_DIR, tf.get_default_graph())
-        val_writer = tf.summary.FileWriter(sub_Config.VAL_LOG_DIR, tf.get_default_graph())
+        writer = tf.summary.FileWriter('./log/fine_tuning/train', tf.get_default_graph())
+        val_writer = tf.summary.FileWriter('./log/fine_tuning/val', tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
-            # images, labels = dataset.train.next_batch(sub_Config.BATCH_SIZE)
-            # labels = np.argmax(labels, 1)
-            # # print np.shape(labels)
-            # images = np.reshape(
-            #     images,
-            #     [
-            #         sub_Config.BATCH_SIZE,
-            #         sub_Config.IMAGE_W,
-            #         sub_Config.IMAGE_H,
-            #         sub_Config.IMAGE_CHANNEL
-            #     ]
-            # )
-            # images, labels = dataset.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
-            images, labels = dataset.get_next_train_batch(sub_Config.BATCH_SIZE)
+            images, labels = train_data_set.images, train_data_set.labels
             images = changed_shape(images, [
                     len(images),
                     sub_Config.IMAGE_W,
@@ -114,15 +106,6 @@ def train(dataset, load_model_path, save_model_path):
                 from PIL import Image
                 image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
                 image.show()
-            # images = np.reshape(
-            #     images[:, :, :, 2],
-            #     [
-            #         sub_Config.BATCH_SIZE,
-            #         sub_Config.IMAGE_W,
-            #         sub_Config.IMAGE_W,
-            #         1
-            #     ]
-            # )
             _, loss_value, accuracy_value, summary = sess.run(
                 [train_op, loss, accuracy_tensor, merge_op],
                 feed_dict={
@@ -138,7 +121,7 @@ def train(dataset, load_model_path, save_model_path):
                 # 保存模型
                 saver.save(sess, save_model_path)
             if i % 100 == 0:
-                validation_images, validation_labels = dataset.get_next_val_batch(sub_Config.BATCH_SIZE)
+                validation_images, validation_labels = val_data_set.images, val_data_set.labels
                 validation_images = changed_shape(
                     validation_images,
                     [
@@ -167,9 +150,13 @@ def train(dataset, load_model_path, save_model_path):
         writer.close()
         val_writer.close()
 if __name__ == '__main__':
-    dataset = PatchDataSet(new_size=[64, 64], config=patch_config)
+    val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val')
+    train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/train')
     train(
-        dataset,
+        train_dataset,
+        val_dataset,
         load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/',
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/'
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/'
     )

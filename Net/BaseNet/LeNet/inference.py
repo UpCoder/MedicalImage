@@ -9,6 +9,8 @@ def inference(input_tensor, regularizer=None):
     # do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False, regularizer=None):
     for key in Config.CONV_LAYERS_CONFIG:
         layer_config = Config.CONV_LAYERS_CONFIG[key]
+        if layer_config['batch_norm']:
+            input_tensor = batch_norm(input_tensor)
         conv_res = do_conv(
             key,
             input_tensor,
