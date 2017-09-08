@@ -66,13 +66,17 @@ def save_mhd_image(image, file_name):
 
 
 # 一次读取多个ｍｈｄ文件，然后统一放缩至指定大小
-def read_mhd_images(paths, new_size=None):
+def read_mhd_images(paths, new_size=None, avg_liver_values=None):
     images = []
-    for path in paths:
+    for index, path in enumerate(paths):
         # print path
         cur_image = read_mhd_image(path)
+        cur_img = np.asarray(cur_image, np.float32)
+        if avg_liver_values is not None:
+            cur_img = cur_img * cur_img
+            cur_img = cur_img / avg_liver_values[index]
         if new_size is not None:
-            cur_img = Image.fromarray(np.asarray(cur_image, np.float32))
+            cur_img = Image.fromarray(np.asarray(cur_img, np.float32))
             cur_img = cur_img.resize(new_size)
             #print np.shape(cur_img), path
             cur_image = np.array(cur_img)
@@ -380,6 +384,20 @@ def linear_enhancement(path='/home/give/PycharmProjects/MedicalImage/imgs/LiverA
             new_path = os.path.join(path, image_dir, 'tumor_' + phase + '_enhancement.jpg')
             image = Image.fromarray(np.asarray(new_tumor, np.uint8))
             image.save(new_path)
+
+
+def extract_avg_liver_dict(txt_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/average_pixel_value.txt'):
+    filed = open(txt_path)
+    lines = filed.readlines()
+    res_dict = {}
+    for line in lines:
+        split_res = line.split(',')
+        srrid = split_res[0]
+        srrid = int(srrid.split('-')[0])
+        avg_liver = [float(split_res[i]) for i in range(1, 4)]
+        res_dict[srrid] = avg_liver
+    return res_dict
+
 
 if __name__ == '__main__':
     linear_enhancement()

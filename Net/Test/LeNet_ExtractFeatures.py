@@ -30,7 +30,7 @@ def val(dataset, load_model_path, save_model_path):
         y_
     )
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
-    y = inference(x, regularizer)
+    y, features = inference(x, regularizer, return_feature=True)
 
     with tf.variable_scope('accuracy'):
         accuracy_tensor = tf.reduce_mean(
@@ -44,7 +44,6 @@ def val(dataset, load_model_path, save_model_path):
             accuracy_tensor
         )
     saver = tf.train.Saver()
-    merge_op = tf.summary.merge_all()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
@@ -60,28 +59,32 @@ def val(dataset, load_model_path, save_model_path):
                 1
             ]
         )
-        validation_accuracy, logits = sess.run(
-            [accuracy_tensor, y],
+        validation_accuracy, features_value = sess.run(
+            [accuracy_tensor, features],
             feed_dict={
                 x: validation_images,
                 y_: validation_labels
             }
         )
-        _, _, _, error_indexs, error_record = calculate_acc_error(
-            logits=np.argmax(logits, 1),
-            label=validation_labels,
-            show=True
-        )
-        print 'accuracy is %g' % \
-              (validation_accuracy)
-        return error_indexs, error_record
+        print validation_accuracy
+        return features_value
 if __name__ == '__main__':
-    dataset = ValDataSet(data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val',
-                         phase='ART',
+    phase = 'pv'
+    state = 'val'
+    dataset = ValDataSet(data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/' + state,
+                         phase=phase.upper(),
                          new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H], shuffle=False)
-    error_indexs, error_record = val(
+    features = val(
         dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/model_art/',
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/model_' + phase +'/',
         save_model_path=None
     )
-    dataset.show_error_name(error_indexs, error_record)
+    np.save(
+        '/home/give/PycharmProjects/MedicalImage/Net/data/' + state + '_' + phase + '.npy',
+        features
+    )
+    np.save(
+        '/home/give/PycharmProjects/MedicalImage/Net/data/' + state + '_' + phase + '_label.npy',
+        dataset.labels
+    )
+    print np.shape(features)

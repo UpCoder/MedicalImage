@@ -5,7 +5,7 @@ from Config import Config
 
 
 # 实现ＬｅＮｅｔ网络结构
-def inference(input_tensor, regularizer=None):
+def inference(input_tensor, regularizer=None, return_feature=False):
     # do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False, regularizer=None):
     for key in Config.CONV_LAYERS_CONFIG:
         layer_config = Config.CONV_LAYERS_CONFIG[key]
@@ -42,6 +42,8 @@ def inference(input_tensor, regularizer=None):
         Config.OUTPUT_NODE,
         regularizer
     )
+    if return_feature:
+        return fc2, fc1
     return fc2
 
 
