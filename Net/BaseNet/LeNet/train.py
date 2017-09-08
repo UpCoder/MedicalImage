@@ -8,9 +8,11 @@ from Tools import changed_shape, calculate_acc_error
 import numpy as np
 from Patch.PatchBase import PatchDataSet
 from Patch.Config import Config as patch_config
+from Slice.Non_WW_WC.SliceBase import SliceDataSet
+from Slice.Non_WW_WC.Config import Config as slice_config
 
 
-def train(dataset, load_model_path, save_model_path):
+def train(dataset, load_model_path, save_model_path, train_log_dir, val_log_dir):
     x = tf.placeholder(
         tf.float32,
         shape=[
@@ -21,17 +23,6 @@ def train(dataset, load_model_path, save_model_path):
         ],
         name='input_x'
     )
-    if sub_Config.NEED_MUL:
-        tf.summary.image(
-            'input_x',
-            x * 120,
-            max_outputs=5
-        )
-    else:
-        tf.summary.image(
-            'input_x',
-            x
-        )
     y_ = tf.placeholder(
         tf.float32,
         shape=[
@@ -47,7 +38,7 @@ def train(dataset, load_model_path, save_model_path):
         sub_Config.MOVING_AVERAGE_DECAY,
         global_step
     )
-    vaeriable_average_op = variable_average.apply(tf.trainable_variables())
+    variable_averages_op = variable_average.apply(tf.trainable_variables())
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
     y = inference(x, regularizer)
     tf.summary.histogram(
@@ -64,11 +55,14 @@ def train(dataset, load_model_path, save_model_path):
         'loss',
         loss
     )
-    train_op = tf.train.GradientDescentOptimizer(
+    train_step = tf.train.GradientDescentOptimizer(
         learning_rate=sub_Config.LEARNING_RATE
     ).minimize(
-        loss=loss
+        loss=loss,
+        global_step=global_step
     )
+    with tf.control_dependencies([train_step, variable_averages_op]):
+        train_op = tf.no_op(name='train')
     with tf.variable_scope('accuracy'):
         accuracy_tensor = tf.reduce_mean(
             tf.cast(
@@ -87,22 +81,9 @@ def train(dataset, load_model_path, save_model_path):
 
         if load_model_path:
             saver.restore(sess, load_model_path)
-        writer = tf.summary.FileWriter(sub_Config.TRAIN_LOG_DIR, tf.get_default_graph())
-        val_writer = tf.summary.FileWriter(sub_Config.VAL_LOG_DIR, tf.get_default_graph())
+        writer = tf.summary.FileWriter(train_log_dir, tf.get_default_graph())
+        val_writer = tf.summary.FileWriter(val_log_dir, tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
-            # images, labels = dataset.train.next_batch(sub_Config.BATCH_SIZE)
-            # labels = np.argmax(labels, 1)
-            # # print np.shape(labels)
-            # images = np.reshape(
-            #     images,
-            #     [
-            #         sub_Config.BATCH_SIZE,
-            #         sub_Config.IMAGE_W,
-            #         sub_Config.IMAGE_H,
-            #         sub_Config.IMAGE_CHANNEL
-            #     ]
-            # )
-            # images, labels = dataset.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
             images, labels = dataset.get_next_train_batch(sub_Config.BATCH_SIZE)
             images = changed_shape(images, [
                     len(images),
@@ -114,17 +95,8 @@ def train(dataset, load_model_path, save_model_path):
                 from PIL import Image
                 image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
                 image.show()
-            # images = np.reshape(
-            #     images[:, :, :, 2],
-            #     [
-            #         sub_Config.BATCH_SIZE,
-            #         sub_Config.IMAGE_W,
-            #         sub_Config.IMAGE_W,
-            #         1
-            #     ]
-            # )
-            _, loss_value, accuracy_value, summary = sess.run(
-                [train_op, loss, accuracy_tensor, merge_op],
+            _, loss_value, accuracy_value, summary, global_step_value = sess.run(
+                [train_op, loss, accuracy_tensor, merge_op, global_step],
                 feed_dict={
                     x: images,
                     y_: labels
@@ -132,7 +104,7 @@ def train(dataset, load_model_path, save_model_path):
             )
             writer.add_summary(
                 summary=summary,
-                global_step=i
+                global_step=global_step_value
             )
             if i % 1000 == 0 and i != 0 and save_model_path is not None:
                 # 保存模型
@@ -145,11 +117,11 @@ def train(dataset, load_model_path, save_model_path):
                         len(validation_images),
                         sub_Config.IMAGE_W,
                         sub_Config.IMAGE_W,
-                        1
+                        sub_Config.IMAGE_CHANNEL
                     ]
                 )
-                validation_accuracy, validation_loss, summary, logits = sess.run(
-                    [accuracy_tensor, loss, merge_op, y],
+                validation_accuracy, validation_loss, summary, logits, global_step_value = sess.run(
+                    [accuracy_tensor, loss, merge_op, y, global_step],
                     feed_dict={
                         x: validation_images,
                         y_: validation_labels
@@ -160,7 +132,7 @@ def train(dataset, load_model_path, save_model_path):
                     label=validation_labels,
                     show=True
                 )
-                val_writer.add_summary(summary, i)
+                val_writer.add_summary(summary, global_step_value)
                 print 'step is %d,training loss value is %g,  accuracy is %g ' \
                       'validation loss value is %g, accuracy is %g' % \
                       (i, loss_value, accuracy_value, validation_loss, validation_accuracy)
@@ -170,6 +142,8 @@ if __name__ == '__main__':
     dataset = PatchDataSet(new_size=[64, 64], config=patch_config)
     train(
         dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/',
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/'
+        load_model_path=None,
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/model_pv/',
+        train_log_dir='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/patch_pv/train',
+        val_log_dir='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/patch_pv/val'
     )

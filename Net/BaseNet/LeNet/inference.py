@@ -16,7 +16,8 @@ def inference(input_tensor, regularizer=None):
             input_tensor,
             layer_config['deep'],
             [layer_config['size'], layer_config['size']],
-            dropout=layer_config['dropout']
+            dropout=layer_config['dropout'],
+            is_pretrain=layer_config['trainable']
 
         )
         input_tensor = conv_res

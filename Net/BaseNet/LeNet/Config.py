@@ -10,7 +10,8 @@ class Config():
                 'exists': True,
                 'name': 'pooling1'
             },
-            'batch_norm': True
+            'batch_norm': True,
+            'trainable': True
         },
         'conv2_1': {
             'deep': 32,
@@ -20,7 +21,8 @@ class Config():
                 'exists': True,
                 'name': 'pooling2'
             },
-            'batch_norm': True
+            'batch_norm': True,
+            'trainable': True
         },
         'conv3_1': {
             'deep': 64,
@@ -30,7 +32,8 @@ class Config():
                 'exists': True,
                 'name': 'pooling3'
             },
-            'batch_norm': True
+            'batch_norm': True,
+            'trainable': True
         }
         # 'conv3_1': {
         #     'deep': 32,

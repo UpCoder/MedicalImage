@@ -11,7 +11,7 @@
 
 import tensorflow as tf
 import numpy as np
-from tools.tools import do_conv, pool, FC_layer, batch_norm, load_with_skip
+from Net.tools import do_conv, pool, FC_layer, batch_norm, load_with_skip
 from Config import Config
 
 class vgg16:

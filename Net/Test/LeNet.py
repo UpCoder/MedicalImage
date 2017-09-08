@@ -77,10 +77,11 @@ def val(dataset, load_model_path, save_model_path):
         return error_indexs, error_record
 if __name__ == '__main__':
     dataset = ValDataSet(data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val',
+                         phase='PV',
                          new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H], shuffle=False)
     error_indexs, error_record = val(
         dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/',
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/model_pv/',
         save_model_path=None
     )
     dataset.show_error_name(error_indexs, error_record)

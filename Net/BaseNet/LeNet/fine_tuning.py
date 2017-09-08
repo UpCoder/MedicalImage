@@ -151,12 +151,14 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         val_writer.close()
 if __name__ == '__main__':
     val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                             phase='PV',
                              data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val')
     train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                               phase='PV',
                                data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/train')
     train(
         train_dataset,
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/',
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/'
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/model_pv/',
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/model_pv/'
     )
