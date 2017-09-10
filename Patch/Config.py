@@ -1,5 +1,5 @@
 class Config:
-    qixiang = 'PV'
+    qixiang = 'ART'
     TRAIN_PATCH_PATHS = [
         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/non_' + qixiang + '/train/0',
         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/non_' + qixiang + '/train/1',

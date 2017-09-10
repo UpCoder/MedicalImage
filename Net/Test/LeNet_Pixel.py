@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
+# 通过预测每个病灶的每个像素点的预测值分布情况来判断
 from Net.BaseNet.LeNet.inference import inference
 import tensorflow as tf
 from Net.BaseNet.LeNet.Config import Config as sub_Config
-from Tools import changed_shape, calculate_acc_error
+from Tools import changed_shape, calculate_acc_error, read_mhd_image
 import numpy as np
 from Patch.ValData import ValDataSet
 from Patch.Config import Config as patch_config
 
 
-def val(dataset, load_model_path, save_model_path):
+def val(dataset, load_model_path):
     x = tf.placeholder(
         tf.float32,
         shape=[
@@ -30,7 +31,7 @@ def val(dataset, load_model_path, save_model_path):
         y_
     )
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
-    y, features = inference(x, regularizer, return_feature=True)
+    y = inference(x, regularizer)
 
     with tf.variable_scope('accuracy'):
         accuracy_tensor = tf.reduce_mean(
@@ -44,6 +45,7 @@ def val(dataset, load_model_path, save_model_path):
             accuracy_tensor
         )
     saver = tf.train.Saver()
+    merge_op = tf.summary.merge_all()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
@@ -59,32 +61,36 @@ def val(dataset, load_model_path, save_model_path):
                 1
             ]
         )
-        validation_accuracy, features_value = sess.run(
-            [accuracy_tensor, features],
+        validation_accuracy, logits = sess.run(
+            [accuracy_tensor, y],
             feed_dict={
                 x: validation_images,
                 y_: validation_labels
             }
         )
-        print validation_accuracy
-        return features_value
+        _, _, _, error_indexs, error_record = calculate_acc_error(
+            logits=np.argmax(logits, 1),
+            label=validation_labels,
+            show=True
+        )
+        print 'accuracy is %g' % \
+              (validation_accuracy)
+        return error_indexs, error_record
 if __name__ == '__main__':
-    phase = 'pv'
-    state = 'train'
-    dataset = ValDataSet(data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/' + state,
-                         phase=phase.upper(),
+    # va_size, image_w, image_h, channal
+    dataset = ValDataSet(data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val',
+                         phase='ART',
                          new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H], shuffle=False)
-    features = val(
+    for one_sample_name in dataset.image_names:
+        original_image = read_mhd_image(one_sample_name)
+        operations = [
+            [96, 64, 1.0],
+            [64, 64, 1.0],
+            [64, 64, 0.8]
+        ]
+
+    error_indexs, error_record = val(
         dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/model_' + phase +'/',
-        save_model_path=None
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/model_art/',
     )
-    np.save(
-        '/home/give/PycharmProjects/MedicalImage/Net/data/' + state + '_' + phase + '.npy',
-        features
-    )
-    np.save(
-        '/home/give/PycharmProjects/MedicalImage/Net/data/' + state + '_' + phase + '_label.npy',
-        dataset.labels
-    )
-    print np.shape(features)
+    dataset.show_error_name(error_indexs, error_record)

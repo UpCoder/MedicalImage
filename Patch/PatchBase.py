@@ -5,7 +5,7 @@ import glob
 
 
 class PatchBase:
-    def __init__(self, paths):
+    def __init__(self, paths, category_number):
         self.paths = paths
         self.patchs_path = []
         self.labels = []
@@ -13,6 +13,12 @@ class PatchBase:
             cur_paths = PatchBase.load_paths(path)
             self.patchs_path.extend(cur_paths)
             self.labels.extend([int(os.path.basename(path))] * len(cur_paths))
+        if category_number == 2:
+            for index, label in enumerate(self.labels):
+                if label == 0 or label == 1 or label == 3:
+                    self.labels[index] = 0
+                else:
+                    self.labels[index] = 1
         self.patchs_path, self.labels = shuffle_image_label(self.patchs_path, self.labels)
         self.startindex = 0
         self.epochnum = 0
@@ -38,9 +44,9 @@ class PatchBase:
         return batch_data, batch_label
 
 class PatchDataSet:
-    def __init__(self, new_size, config=Config):
-        self.train_dataset = PatchBase(config.TRAIN_PATCH_PATHS)
-        self.val_dataset = PatchBase(config.VAL_PATCH_PATHS)
+    def __init__(self, new_size, config=Config, category_number=5):
+        self.train_dataset = PatchBase(config.TRAIN_PATCH_PATHS, category_number)
+        self.val_dataset = PatchBase(config.VAL_PATCH_PATHS, category_number)
         self.new_size = new_size
         
     def get_next_train_batch(self, batch_size):

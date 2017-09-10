@@ -33,6 +33,7 @@ if __name__ == '__main__':
         if label != trainlabelpv[index]:
             print 'Error'
     traindata = np.concatenate([traindataart, traindatapv], axis=1)
+    traindata = traindataart
     print np.shape(traindata)
     testdataart = np.load(
         '/home/give/PycharmProjects/MedicalImage/Net/data/val_art.npy'
@@ -50,4 +51,5 @@ if __name__ == '__main__':
         if label != testlabelpv[index]:
             print 'Error'
     testdata = np.concatenate([testdataart, testdatapv], axis=1)
+    testdata = testdataart
     do_svc(traindata, trainlabelart, testdata, testlabelart)

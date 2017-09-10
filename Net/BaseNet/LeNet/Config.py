@@ -4,7 +4,7 @@ class Config():
     CONV_LAYERS_CONFIG = {
         'conv1_1': {
             'deep': 32,
-            'size': 3,
+            'size': 5,
             'dropout': True,
             'pooling': {
                 'exists': True,
@@ -13,9 +13,31 @@ class Config():
             'batch_norm': True,
             'trainable': True
         },
+        # 'conv1_2': {
+        #     'deep': 32,
+        #     'size': 1,
+        #     'dropout': True,
+        #     'pooling': {
+        #         'exists': False,
+        #         'name': 'pooling1'
+        #     },
+        #     'batch_norm': True,
+        #     'trainable': True
+        # },
+        # 'conv1_3': {
+        #     'deep': 32,
+        #     'size': 1,
+        #     'dropout': True,
+        #     'pooling': {
+        #         'exists': False,
+        #         'name': 'pooling1'
+        #     },
+        #     'batch_norm': True,
+        #     'trainable': True
+        # },
         'conv2_1': {
             'deep': 32,
-            'size': 3,
+            'size': 5,
             'dropout': True,
             'pooling': {
                 'exists': True,
@@ -24,6 +46,28 @@ class Config():
             'batch_norm': True,
             'trainable': True
         },
+        # 'conv2_2': {
+        #     'deep': 32,
+        #     'size': 1,
+        #     'dropout': True,
+        #     'pooling': {
+        #         'exists': False,
+        #         'name': 'pooling2'
+        #     },
+        #     'batch_norm': True,
+        #     'trainable': True
+        # },
+        # 'conv2_3': {
+        #     'deep': 32,
+        #     'size': 1,
+        #     'dropout': True,
+        #     'pooling': {
+        #         'exists': False,
+        #         'name': 'pooling2'
+        #     },
+        #     'batch_norm': True,
+        #     'trainable': True
+        # },
         'conv3_1': {
             'deep': 64,
             'size': 3,
@@ -41,29 +85,22 @@ class Config():
         # },
     }
 
-    FC_SIZE = 512
+    FC_SIZE = 256
 
     BATCH_SIZE = 800
-    BATCH_DISTRIBUTION = [
-        10,
-        10,
-        10,
-        10,
-        10,
-    ]
 
-    OUTPUT_NODE = 5
+    OUTPUT_NODE = 2
     IMAGE_W = 64
     IMAGE_H = 64
     IMAGE_CHANNEL = 1
 
-    REGULARIZTION_RATE = 1e-20
+    REGULARIZTION_RATE = 1e-3
     MOVING_AVERAGE_DECAY = 0.997
     LEARNING_RATE = 1e-4
 
     DROP_OUT = True
 
-    ITERATOE_NUMBER = int(1e+4)
+    ITERATOE_NUMBER = int(1e+5)
 
     TRAIN_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/tumor_linear_enhancement/train'
     VAL_LOG_DIR = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/log/tumor_linear_enhancement/val'
