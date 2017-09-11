@@ -73,7 +73,7 @@ def read_mhd_images(paths, new_size=None, avg_liver_values=None):
         cur_image = read_mhd_image(path)
         cur_img = np.asarray(cur_image, np.float32)
         if avg_liver_values is not None:
-            for i in range(0):
+            for i in range(1):
                 cur_img = cur_img * cur_img
                 cur_img = cur_img / avg_liver_values[index]
         if new_size is not None:
@@ -83,6 +83,7 @@ def read_mhd_images(paths, new_size=None, avg_liver_values=None):
             cur_image = np.array(cur_img)
         images.append(cur_image)
     return images
+
 
 # 将灰度图像转化为RGB通道
 def conver_image_RGB(gray_image):
@@ -339,6 +340,27 @@ def show_image(image_arr, title=None):
     image.show(title=title)
 
 
+# 计算针对二分类错了多少个
+def acc_binary_acc(logits, label):
+    acc_count = 0.0
+    logits = copy.copy(logits)
+    label = copy.copy(label)
+    logits = np.array(logits)
+    label = np.array(label)
+    logits[logits == 1] = 0
+    logits[logits == 3] = 0
+    logits[logits == 2] = 1
+    logits[logits == 4] = 1
+
+    label[label == 1] = 0
+    label[label == 3] = 0
+    label[label == 2] = 1
+    label[label == 4] = 1
+    for index, logit in enumerate(logits):
+        if label[index] == logit:
+            acc_count += 1
+    return (1.0 * acc_count) / (1.0 * len(logits))
+
 # 计算Ａｃｃｕｒａｃｙ，并且返回每一类最大错了多少个
 def calculate_acc_error(logits, label, show=True):
     error_index = []
@@ -399,6 +421,36 @@ def extract_avg_liver_dict(txt_path='/home/give/Documents/dataset/MedicalImage/M
         res_dict[srrid] = avg_liver
     return res_dict
 
+
+def calculate_tp(logits, labels):
+    count = 0
+    for index, logit in enumerate(logits):
+        if logit == labels[index] and logit == 1:
+            count += 1
+    return count
+
+def calculate_recall(logits, labels):
+    tp = calculate_tp(logits=logits, labels=labels)
+    recall = (tp * 1.0) / (np.sum(labels == 1) * 1.0)
+    return recall
+
+
+def calculate_precision(logits, labels):
+    tp = calculate_tp(logits=logits, labels=labels)
+    precision = (tp * 1.0) / (np.sum(logits == 1) * 1.0)
+    return precision
+
+
+def get_game_evaluate(logits, labels, argmax=None):
+    logits = np.array(logits)
+    labels = np.array(labels)
+    if argmax is not None:
+        logits = np.argmax(logits, argmax)
+        labels = np.argmax(labels, argmax)
+    recall = calculate_recall(logits=logits, labels=labels)
+    precision = calculate_precision(logits=logits, labels=labels)
+    f1_score = (2*precision*recall) / (precision + recall)
+    return recall, precision, f1_score
 
 if __name__ == '__main__':
     linear_enhancement()

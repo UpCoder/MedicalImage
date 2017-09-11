@@ -3,23 +3,21 @@
 from inference import inference
 import tensorflow as tf
 from Config import Config as sub_Config
-from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
-from tensorflow.examples.tutorials.mnist import input_data
 from Tools import changed_shape, calculate_acc_error
 import numpy as np
-from Patch.ValData import ValDataSet
+from Patch.ValDataMultiPhase import ValDataSetMultiPhase
 from Patch.Config import Config as patch_config
 from Net.tools import save_weights, load
 
 
-def train(train_data_set, val_data_set, load_model_path, save_model_path):
+def train(train_data_set, val_data_set, phase_names, load_model_path, save_model_path):
     x = tf.placeholder(
         tf.float32,
         shape=[
             None,
             sub_Config.IMAGE_W,
             sub_Config.IMAGE_H,
-            sub_Config.IMAGE_CHANNEL
+            sub_Config.IMAGE_CHANNEL * len(phase_names)
         ],
         name='input_x'
     )
@@ -45,13 +43,8 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         y_
     )
     global_step = tf.Variable(0, trainable=False)
-    # variable_average = tf.train.ExponentialMovingAverage(
-    #     sub_Config.MOVING_AVERAGE_DECAY,
-    #     global_step
-    # )
-    # vaeriable_average_op = variable_average.apply(tf.trainable_variables())
     regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
-    y = inference(x, regularizer)
+    y = inference(x, regularizer=regularizer, phase_names=phase_names)
     tf.summary.histogram(
         'logits',
         tf.argmax(y, 1)
@@ -99,16 +92,16 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
             saver.restore(sess, load_model_path)
         else:
             sess.run(tf.global_variables_initializer())
-        writer = tf.summary.FileWriter('./log/fine_tuning/train', tf.get_default_graph())
-        val_writer = tf.summary.FileWriter('./log/fine_tuning/val', tf.get_default_graph())
+        writer = tf.summary.FileWriter('./log/2/train', tf.get_default_graph())
+        val_writer = tf.summary.FileWriter('./log/2/val', tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
             images, labels = train_data_set.images, train_data_set.labels
-            images = changed_shape(images, [
-                    len(images),
-                    sub_Config.IMAGE_W,
-                    sub_Config.IMAGE_W,
-                    sub_Config.IMAGE_CHANNEL
-                ])
+            # images = changed_shape(images, [
+            #         len(images),
+            #         sub_Config.IMAGE_W,
+            #         sub_Config.IMAGE_W,
+            #         sub_Config.IMAGE_CHANNEL
+            #     ])
             if i == 0:
                 from PIL import Image
                 image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
@@ -130,25 +123,18 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
             )
             if i % 500 == 0 and i != 0 and save_model_path is not None:
                 # 保存模型
-                save_weights(save_model_path+'model_weights.npy', [
-                    'conv1_1',
-                    'conv2_1',
-                    'conv3_1',
-                    'fc1',
-                    'fc2'
-                ])
                 saver.save(sess, save_model_path)
             if i % 100 == 0:
                 validation_images, validation_labels = val_data_set.images, val_data_set.labels
-                validation_images = changed_shape(
-                    validation_images,
-                    [
-                        len(validation_images),
-                        sub_Config.IMAGE_W,
-                        sub_Config.IMAGE_W,
-                        1
-                    ]
-                )
+                # validation_images = changed_shape(
+                #     validation_images,
+                #     [
+                #         len(validation_images),
+                #         sub_Config.IMAGE_W,
+                #         sub_Config.IMAGE_W,
+                #         1
+                #     ]
+                # )
                 # validation_labels[validation_labels == 1] = 0
                 # validation_labels[validation_labels == 3] = 0
                 # validation_labels[validation_labels == 4] = 1
@@ -172,26 +158,27 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         writer.close()
         val_writer.close()
 if __name__ == '__main__':
-    phase_name = 'ART'
+    phase_names = ['NC', 'ART', 'PV']
     # state = '_Expand'
     state = ''
-    val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
-                             phase=phase_name,
-                             shuffle=False,
-                             category_number=sub_Config.OUTPUT_NODE,
-                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state + '/val')
+    val_dataset = ValDataSetMultiPhase(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                                       phases=phase_names,
+                                       shuffle=False,
+                                       category_number=sub_Config.OUTPUT_NODE,
+                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state + '/val')
     print 'val label is '
     # print val_dataset.labels
-    train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
-                               phase=phase_name,
-                               shuffle=False,
-                               category_number=sub_Config.OUTPUT_NODE,
-                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train')
+    train_dataset = ValDataSetMultiPhase(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                                         phases=phase_names,
+                                         shuffle=False,
+                                         category_number=sub_Config.OUTPUT_NODE,
+                                         data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state + '/train')
     # print np.shape(train_dataset.labels)
     train(
         train_dataset,
         val_dataset,
         # load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/2/art/',
+        phase_names,
         load_model_path=None,
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/2/' + phase_name.lower() +state +'/'
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/2/'
     )

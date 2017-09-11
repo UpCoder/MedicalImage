@@ -4,7 +4,7 @@ class Config():
     CONV_LAYERS_CONFIG = {
         'conv1_1': {
             'deep': 32,
-            'size': 5,
+            'size': 7,
             'dropout': True,
             'pooling': {
                 'exists': True,
@@ -13,28 +13,6 @@ class Config():
             'batch_norm': True,
             'trainable': True
         },
-        # 'conv1_2': {
-        #     'deep': 32,
-        #     'size': 1,
-        #     'dropout': True,
-        #     'pooling': {
-        #         'exists': False,
-        #         'name': 'pooling1'
-        #     },
-        #     'batch_norm': True,
-        #     'trainable': True
-        # },
-        # 'conv1_3': {
-        #     'deep': 32,
-        #     'size': 1,
-        #     'dropout': True,
-        #     'pooling': {
-        #         'exists': False,
-        #         'name': 'pooling1'
-        #     },
-        #     'batch_norm': True,
-        #     'trainable': True
-        # },
         'conv2_1': {
             'deep': 32,
             'size': 5,
@@ -46,28 +24,6 @@ class Config():
             'batch_norm': True,
             'trainable': True
         },
-        # 'conv2_2': {
-        #     'deep': 32,
-        #     'size': 1,
-        #     'dropout': True,
-        #     'pooling': {
-        #         'exists': False,
-        #         'name': 'pooling2'
-        #     },
-        #     'batch_norm': True,
-        #     'trainable': True
-        # },
-        # 'conv2_3': {
-        #     'deep': 32,
-        #     'size': 1,
-        #     'dropout': True,
-        #     'pooling': {
-        #         'exists': False,
-        #         'name': 'pooling2'
-        #     },
-        #     'batch_norm': True,
-        #     'trainable': True
-        # },
         'conv3_1': {
             'deep': 64,
             'size': 3,

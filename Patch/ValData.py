@@ -33,6 +33,9 @@ class ValDataSet:
         avg_liver_values = []
         casees.sort()
         for case_name in casees:
+            # print case_name
+            print 'case name is ', case_name
+            print case_name.split('_')[0]
             srrid = int(case_name.split('_')[0])
             phase_index = get_phase_index(phase=phase_name)
             avg_liver_value = avg_liver_dict[srrid][phase_index]

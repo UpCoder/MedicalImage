@@ -14,3 +14,4 @@ git add ./Net/MyNet/BG_RNN_MultiScale/*.py
 git add ./Slice/TwoFolderMaxSlice/*.py
 git add ./Patch/*.py
 git add ./Net/BaseNet/VGG16/*.py
+git add ./Net/BaseNet/LeNet_3/*.py

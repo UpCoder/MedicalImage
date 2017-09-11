@@ -39,6 +39,12 @@ def do_upsample(name, input_tensor, output_channel, output_size, ksize, stride=[
 
 def do_conv(name, input_tensor, out_channel, ksize, stride=[1, 1, 1, 1], is_pretrain=True, dropout=False,
             regularizer=None, reuse=False, batch_normalization=False):
+    shape = input_tensor.get_shape().as_list()
+    if len(shape) == 3:
+        input_tensor = tf.expand_dims(
+            input_tensor,
+            dim=3
+        )
     input_channel = input_tensor.get_shape()[-1]
     with tf.variable_scope(name, reuse=reuse):
         weights = tf.get_variable(

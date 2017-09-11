@@ -5,7 +5,7 @@ import tensorflow as tf
 from Net.BaseNet.LeNet.Config import Config as sub_Config
 from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
 from tensorflow.examples.tutorials.mnist import input_data
-from Tools import changed_shape, calculate_acc_error
+from Tools import changed_shape, calculate_acc_error, get_game_evaluate
 import numpy as np
 from Patch.ValData import ValDataSet
 from Patch.Config import Config as patch_config
@@ -83,6 +83,13 @@ def val(val_data_set, load_model_path):
             label=validation_labels,
             show=True
         )
+        recall, precision, f1_score = get_game_evaluate(
+            np.argmax(logits, 1),
+            validation_labels
+        )
+        validation_labels = np.array(validation_labels)
+        print 'label=0 %d, label=1 %d' % (np.sum(validation_labels == 0), np.sum(validation_labels == 1))
+        print 'recall is %g, precision is %g, f1_score is %g' % (recall, precision, f1_score)
         print 'accuracy is %g' % \
               (validation_accuracy)
         return error_indexs, error_record
