@@ -15,3 +15,4 @@ git add ./Slice/TwoFolderMaxSlice/*.py
 git add ./Patch/*.py
 git add ./Net/BaseNet/VGG16/*.py
 git add ./Net/BaseNet/LeNet_3/*.py
+git add ./Net/BaseNet/ResNet/*.py
