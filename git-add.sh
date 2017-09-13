@@ -16,3 +16,5 @@ git add ./Patch/*.py
 git add ./Net/BaseNet/VGG16/*.py
 git add ./Net/BaseNet/LeNet_3/*.py
 git add ./Net/BaseNet/ResNet/*.py
+git add ./Net/BaseNet/ResNet_3/*.py
+git add ./Net/BaseNet/ResNetMultiScale/*.py

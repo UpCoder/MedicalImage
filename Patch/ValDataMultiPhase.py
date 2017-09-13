@@ -27,7 +27,9 @@ class ValDataSetMultiPhase:
         self.labels = self.valdatasets[0].labels
         for index, valdataset in enumerate(self.valdatasets):
             self.images[:, :, :, index] = valdataset.images
-            if self.labels != valdataset.labels:
+            print np.shape(self.labels)
+            print np.shape(valdataset.labels)
+            if np.sum(self.labels != np.array(valdataset.labels)) != 0:
                 print 'Error label', index
                 print self.labels, valdataset.labels
 
@@ -71,7 +73,40 @@ class ValDataSetMultiPhase:
             else:
                 print error_name
 
-
+    def get_next_batch(self, batch_size=None, distribution=None):
+        if batch_size is None:
+            return self.images, self.labels
+        else:
+            if distribution is None:
+                random_index = range(len(self.labels))
+                np.random.shuffle(random_index)
+                batch_index = random_index[:batch_size]
+                batch_images = []
+                batch_labels = []
+                for index in batch_index:
+                    batch_images.append(
+                        self.images[index]
+                    )
+                    batch_labels.append(
+                        self.labels[index]
+                    )
+                return batch_images, batch_labels
+            else:
+                images = []
+                labels = []
+                for index, count in enumerate(distribution):
+                    cur_indexs = (np.array(self.labels) == index)
+                    random_index = range(len(self.labels))
+                    np.random.shuffle(random_index)
+                    count = 0
+                    for cur_index in random_index:
+                        if cur_indexs[cur_index]:
+                            count += 1
+                            images.append(self.images[cur_index])
+                            labels.append(self.labels[cur_index])
+                        if count >= distribution[index]:
+                            break
+                return images, labels
 if __name__ == '__main__':
     phase_names = ['NC', 'ART', 'PV']
     # state = '_Expand'

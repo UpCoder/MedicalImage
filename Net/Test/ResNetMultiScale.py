@@ -1,27 +1,26 @@
 # -*- coding: utf-8 -*-
 # 使用ｐａｔｃｈ训练好的模型，来对ＲＯＩ进行微调
-from Net.BaseNet.ResNet.resnet import inference_small, loss
+from Net.BaseNet.ResNetMultiScale.resnet import inference_small, loss
 import tensorflow as tf
-from Net.BaseNet.ResNet.Config import Config as sub_Config
-from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
-from tensorflow.examples.tutorials.mnist import input_data
+from Net.BaseNet.ResNetMultiScale.Config import Config as sub_Config
 from Tools import changed_shape, calculate_acc_error, acc_binary_acc
 import numpy as np
-from Patch.ValData import ValDataSet
-from Patch.Config import Config as patch_config
+from Patch.ValDataMultiSize import ValDataSet
 
 
-def val(val_data_set, load_model_path):
-    x = tf.placeholder(
-        tf.float32,
-        shape=[
-            None,
-            sub_Config.IMAGE_W,
-            sub_Config.IMAGE_H,
-            sub_Config.IMAGE_CHANNEL
-        ],
-        name='input_x'
-    )
+def train(val_data_set, load_model_path):
+    xs = []
+    for index in range(len(sub_Config.SIZES)):
+        xs.append(
+            tf.placeholder(
+                tf.float32,
+                shape=[
+                    None,
+                    sub_Config.SIZES[index][0],
+                    sub_Config.SIZES[index][1]
+                ]
+            )
+        )
     y_ = tf.placeholder(
         tf.float32,
         shape=[
@@ -32,13 +31,13 @@ def val(val_data_set, load_model_path):
         'label',
         y_
     )
-    # global_step = tf.Variable(0, trainable=False)
+    global_step = tf.Variable(0, trainable=False)
     is_training = tf.placeholder('bool', [], name='is_training')
     FLAGS = tf.app.flags.FLAGS
     tf.app.flags.DEFINE_string('data_dir', '/tmp/cifar-data',
                                'where to store the dataset')
     tf.app.flags.DEFINE_boolean('use_bn', True, 'use batch normalization. otherwise use biases')
-    y = inference_small(x, is_training=is_training,
+    y = inference_small(xs, is_training=is_training,
                         num_classes=sub_Config.OUTPUT_NODE,
                         use_bias=FLAGS.use_bn,
                         num_blocks=3)
@@ -46,14 +45,9 @@ def val(val_data_set, load_model_path):
         'logits',
         tf.argmax(y, 1)
     )
-    loss_ = loss(
-        logits=y,
-        labels=tf.cast(y_, np.int32)
-    )
-    tf.summary.scalar(
-        'loss',
-        loss_
-    )
+    # with tf.control_dependencies([train_step, vaeriable_average_op]):
+    #     train_op = tf.no_op(name='train')
+
     with tf.variable_scope('accuracy'):
         accuracy_tensor = tf.reduce_mean(
             tf.cast(
@@ -68,42 +62,37 @@ def val(val_data_set, load_model_path):
     saver = tf.train.Saver()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
         if load_model_path:
             saver.restore(sess, load_model_path)
+
         validation_images, validation_labels = val_data_set.images, val_data_set.labels
-        validation_images = changed_shape(
-            validation_images,
-            [
-                len(validation_images),
-                sub_Config.IMAGE_W,
-                sub_Config.IMAGE_W,
-                1
-            ]
+        feed_dict = {}
+        for index, _ in enumerate(sub_Config.SIZES):
+            feed_dict[xs[index]] = validation_images[index]
+        feed_dict[y_] = validation_labels
+        validation_accuracy, logits = sess.run(
+            [accuracy_tensor, y],
+            feed_dict=feed_dict
         )
-        validation_accuracy, validation_loss, logits = sess.run(
-            [accuracy_tensor, loss_, y],
-            feed_dict={
-                x: validation_images,
-                y_: validation_labels
-            }
-        )
-        _, _, _, error_indexs, error_record = calculate_acc_error(
+        _, _, _, error_index, error_record = calculate_acc_error(
             logits=np.argmax(logits, 1),
             label=validation_labels,
             show=True
         )
-        print 'validation loss value is %g, accuracy is %g' % \
-              (validation_loss, validation_accuracy)
-        return error_indexs, error_record
+        print 'accuracy is %g' % \
+              (validation_accuracy)
+        return error_index, error_record
 if __name__ == '__main__':
     phase_name = 'ART'
     state = ''
-    val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+    val_dataset = ValDataSet(new_sizes=sub_Config.SIZES,
                              phase=phase_name,
                              category_number=sub_Config.OUTPUT_NODE,
+                             shuffle=False,
                              data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state +'/val')
-    error_indexs, error_record = val(
+    error_index, error_record = train(
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5_64/'
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5/'
     )
-    val_dataset.show_error_name(error_indexs, error_record, copy=False)
+    val_dataset.show_error_name(error_index, error_record)

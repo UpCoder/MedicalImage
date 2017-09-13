@@ -5,10 +5,11 @@ import tensorflow as tf
 from Config import Config as sub_Config
 from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
 from tensorflow.examples.tutorials.mnist import input_data
-from Tools import changed_shape, calculate_acc_error, acc_binary_acc
+from Tools import changed_shape, calculate_acc_error
 import numpy as np
 from Patch.ValData import ValDataSet
 from Patch.Config import Config as patch_config
+from Net.tools import save_weights, load
 
 
 def train(train_data_set, val_data_set, load_model_path, save_model_path):
@@ -32,13 +33,12 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         'label',
         y_
     )
-    # global_step = tf.Variable(0, trainable=False)
+    global_step = tf.Variable(0, trainable=False)
     # variable_average = tf.train.ExponentialMovingAverage(
     #     sub_Config.MOVING_AVERAGE_DECAY,
     #     global_step
     # )
     # vaeriable_average_op = variable_average.apply(tf.trainable_variables())
-    # regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
     is_training = tf.placeholder('bool', [], name='is_training')
     FLAGS = tf.app.flags.FLAGS
     tf.app.flags.DEFINE_string('data_dir', '/tmp/cifar-data',
@@ -65,7 +65,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         learning_rate=sub_Config.LEARNING_RATE
     ).minimize(
         loss=loss_,
-        # global_step=global_step
+        global_step=global_step
     )
     # with tf.control_dependencies([train_step, vaeriable_average_op]):
     #     train_op = tf.no_op(name='train')
@@ -84,10 +84,16 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
     saver = tf.train.Saver()
     merge_op = tf.summary.merge_all()
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
+        # sess.run(tf.global_variables_initializer())
 
         if load_model_path:
+            # load(load_model_path, sess)
+            # with tf.variable_scope('conv1_1', reuse=True):
+            #     weights1 = tf.get_variable('weights')
+            #     print weights1.eval(sess)
             saver.restore(sess, load_model_path)
+        else:
+            sess.run(tf.global_variables_initializer())
         writer = tf.summary.FileWriter('./log/fine_tuning/train', tf.get_default_graph())
         val_writer = tf.summary.FileWriter('./log/fine_tuning/val', tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
@@ -102,8 +108,12 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                 from PIL import Image
                 image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
                 image.show()
-            _, loss_value, accuracy_value, summary = sess.run(
-                [train_op, loss_, accuracy_tensor, merge_op],
+            # labels[labels == 1] = 0
+            # labels[labels == 3] = 0
+            # labels[labels == 4] = 1
+            # labels[labels == 2] = 1
+            _, loss_value, accuracy_value, summary, global_step_value = sess.run(
+                [train_op, loss_, accuracy_tensor, merge_op, global_step],
                 feed_dict={
                     x: images,
                     y_: labels
@@ -111,7 +121,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
             )
             writer.add_summary(
                 summary=summary,
-                global_step=i
+                global_step=global_step_value
             )
             if i % 500 == 0 and i != 0 and save_model_path is not None:
                 # 保存模型
@@ -127,8 +137,12 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                         1
                     ]
                 )
-                validation_accuracy, validation_loss, summary, logits = sess.run(
-                    [accuracy_tensor, loss_, merge_op, y],
+                # validation_labels[validation_labels == 1] = 0
+                # validation_labels[validation_labels == 3] = 0
+                # validation_labels[validation_labels == 4] = 1
+                # validation_labels[validation_labels == 2] = 1
+                validation_accuracy, summary, logits = sess.run(
+                    [accuracy_tensor, merge_op, y],
                     feed_dict={
                         x: validation_images,
                         y_: validation_labels
@@ -139,31 +153,33 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                     label=validation_labels,
                     show=True
                 )
-                binary_acc = acc_binary_acc(
-                    logits=np.argmax(logits, 1),
-                    label=validation_labels,
-                )
-                val_writer.add_summary(summary, i)
+                val_writer.add_summary(summary, global_step_value)
                 print 'step is %d,training loss value is %g,  accuracy is %g ' \
-                      'validation loss value is %g, accuracy is %g, binary_acc is %g' % \
-                      (i, loss_value, accuracy_value, validation_loss, validation_accuracy, binary_acc)
+                      'validation loss value is, accuracy is %g' % \
+                      (global_step_value, loss_value, accuracy_value, validation_accuracy)
         writer.close()
         val_writer.close()
 if __name__ == '__main__':
     phase_name = 'ART'
+    # state = '_Expand'
     state = ''
     val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
                              phase=phase_name,
+                             shuffle=False,
                              category_number=sub_Config.OUTPUT_NODE,
-                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state +'/val')
+                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state + '/val')
+    print 'val label is '
+    # print val_dataset.labels
     train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
                                phase=phase_name,
+                               shuffle=False,
                                category_number=sub_Config.OUTPUT_NODE,
-                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train'
-                               )
+                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train')
+    # print np.shape(train_dataset.labels)
     train(
         train_dataset,
         val_dataset,
+        # load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/2/art/',
         load_model_path=None,
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5_64/'
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/2/'
     )

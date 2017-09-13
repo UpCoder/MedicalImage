@@ -3,20 +3,38 @@
 import os
 from Tools import read_mhd_images, shuffle_image_label, extract_avg_liver_dict, read_mhd_image, save_mhd_image
 import shutil
+import numpy as np
 
 
 class ValDataSet:
-    def __init__(self, data_path, new_size, shuffle=True, phase='ART', category_number=5):
+    def __init__(self, data_path, new_sizes, shuffle=True, phase='ART', category_number=5):
         self.data_path = data_path
         self.phase = phase
         self.shuffle = True
         self.avg_liver_dict = extract_avg_liver_dict()
         self.category_number = category_number
-        self.images, self.labels, self.image_names = ValDataSet.load_data_path(data_path, new_size, self.phase,
+        self.images, self.labels, self.image_names = ValDataSet.load_data_path_multisize(data_path, new_sizes, self.phase,
                                                                                self.avg_liver_dict,
                                                                                self.category_number)
         if shuffle:
             self.images, self.labels = shuffle_image_label(self.images, self.labels)
+
+    @staticmethod
+    def load_data_path_multisize(path, new_sizes, phase_name, avg_liver_dict, category_number):
+        diff_sized_images = []
+        labels = []
+        images_names = []
+        for index in range(len(new_sizes)):
+            images, labels, images_names = ValDataSet.load_data_path(
+                path,
+                new_sizes[index],
+                phase_name,
+                avg_liver_dict,
+                category_number
+            )
+            diff_sized_images.append(np.array(images))
+        print 'label is ', labels
+        return diff_sized_images, labels, images_names
 
     @staticmethod
     def load_data_path(path, new_size, phase_name, avg_liver_dict, category_number):

@@ -3,25 +3,24 @@
 from resnet import inference_small, loss
 import tensorflow as tf
 from Config import Config as sub_Config
-from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
-from tensorflow.examples.tutorials.mnist import input_data
 from Tools import changed_shape, calculate_acc_error, acc_binary_acc
 import numpy as np
-from Patch.ValData import ValDataSet
-from Patch.Config import Config as patch_config
+from Patch.ValDataMultiSize import ValDataSet
 
 
 def train(train_data_set, val_data_set, load_model_path, save_model_path):
-    x = tf.placeholder(
-        tf.float32,
-        shape=[
-            None,
-            sub_Config.IMAGE_W,
-            sub_Config.IMAGE_H,
-            sub_Config.IMAGE_CHANNEL
-        ],
-        name='input_x'
-    )
+    xs = []
+    for index in range(len(sub_Config.SIZES)):
+        xs.append(
+            tf.placeholder(
+                tf.float32,
+                shape=[
+                    None,
+                    sub_Config.SIZES[index][0],
+                    sub_Config.SIZES[index][1]
+                ]
+            )
+        )
     y_ = tf.placeholder(
         tf.float32,
         shape=[
@@ -32,7 +31,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         'label',
         y_
     )
-    # global_step = tf.Variable(0, trainable=False)
+    global_step = tf.Variable(0, trainable=False)
     # variable_average = tf.train.ExponentialMovingAverage(
     #     sub_Config.MOVING_AVERAGE_DECAY,
     #     global_step
@@ -44,7 +43,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
     tf.app.flags.DEFINE_string('data_dir', '/tmp/cifar-data',
                                'where to store the dataset')
     tf.app.flags.DEFINE_boolean('use_bn', True, 'use batch normalization. otherwise use biases')
-    y = inference_small(x, is_training=is_training,
+    y = inference_small(xs, is_training=is_training,
                         num_classes=sub_Config.OUTPUT_NODE,
                         use_bias=FLAGS.use_bn,
                         num_blocks=3)
@@ -65,7 +64,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         learning_rate=sub_Config.LEARNING_RATE
     ).minimize(
         loss=loss_,
-        # global_step=global_step
+        global_step=global_step
     )
     # with tf.control_dependencies([train_step, vaeriable_average_op]):
     #     train_op = tf.no_op(name='train')
@@ -92,22 +91,13 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         val_writer = tf.summary.FileWriter('./log/fine_tuning/val', tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
             images, labels = train_data_set.images, train_data_set.labels
-            images = changed_shape(images, [
-                    len(images),
-                    sub_Config.IMAGE_W,
-                    sub_Config.IMAGE_W,
-                    sub_Config.IMAGE_CHANNEL
-                ])
-            if i == 0:
-                from PIL import Image
-                image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
-                image.show()
+            feed_dict = {}
+            for index in range(len(sub_Config.SIZES)):
+                feed_dict.setdefault(xs[index], images[index])
+            feed_dict.setdefault(y_, labels)
             _, loss_value, accuracy_value, summary = sess.run(
                 [train_op, loss_, accuracy_tensor, merge_op],
-                feed_dict={
-                    x: images,
-                    y_: labels
-                }
+                feed_dict=feed_dict
             )
             writer.add_summary(
                 summary=summary,
@@ -118,21 +108,13 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                 saver.save(sess, save_model_path)
             if i % 100 == 0:
                 validation_images, validation_labels = val_data_set.images, val_data_set.labels
-                validation_images = changed_shape(
-                    validation_images,
-                    [
-                        len(validation_images),
-                        sub_Config.IMAGE_W,
-                        sub_Config.IMAGE_W,
-                        1
-                    ]
-                )
+                feed_dict = {}
+                for index, _ in enumerate(sub_Config.SIZES):
+                    feed_dict[xs[index]] = validation_images[index]
+                feed_dict[y_] = validation_labels
                 validation_accuracy, validation_loss, summary, logits = sess.run(
                     [accuracy_tensor, loss_, merge_op, y],
-                    feed_dict={
-                        x: validation_images,
-                        y_: validation_labels
-                    }
+                    feed_dict=feed_dict
                 )
                 calculate_acc_error(
                     logits=np.argmax(logits, 1),
@@ -152,18 +134,22 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
 if __name__ == '__main__':
     phase_name = 'ART'
     state = ''
-    val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+    traindatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train'
+    valdatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val'
+    val_dataset = ValDataSet(new_sizes=sub_Config.SIZES,
                              phase=phase_name,
                              category_number=sub_Config.OUTPUT_NODE,
-                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state +'/val')
-    train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                             shuffle=False,
+                             data_path=valdatapath)
+    train_dataset = ValDataSet(new_sizes=sub_Config.SIZES,
                                phase=phase_name,
                                category_number=sub_Config.OUTPUT_NODE,
-                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train'
+                               shuffle=False,
+                               data_path=traindatapath
                                )
     train(
         train_dataset,
         val_dataset,
         load_model_path=None,
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5_64/'
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5-Expand/'
     )

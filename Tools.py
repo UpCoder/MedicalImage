@@ -78,6 +78,7 @@ def read_mhd_images(paths, new_size=None, avg_liver_values=None):
                 cur_img = cur_img / avg_liver_values[index]
         if new_size is not None:
             cur_img = Image.fromarray(np.asarray(cur_img, np.float32))
+            print new_size
             cur_img = cur_img.resize(new_size)
             #print np.shape(cur_img), path
             cur_image = np.array(cur_img)
@@ -268,13 +269,17 @@ def get_distribution_label(labels):
 def shuffle_image_label(images, labels):
     print len(images)
     print len(labels)
-    images = np.array(images)
     labels = np.array(labels)
-    random_index = range(len(images))
+    if len(images) == 2:
+        random_index = range(len(images[0]))
+    else:
+        random_index = range(len(images))
     np.random.shuffle(random_index)
-    images = images[random_index]
     labels = labels[random_index]
-    return images, labels
+    new_images = []
+    for cur_index in random_index:
+        new_images.append(images[cur_index])
+    return new_images, labels
 
 
 # 将数据按照指定的方式排序
@@ -368,6 +373,7 @@ def calculate_acc_error(logits, label, show=True):
     error_dict_record = {}
     error_count = 0
     error_record = []
+    label = np.array(label)
     for index, logit in enumerate(logits):
         if logit != label[index]:
             error_count += 1
@@ -382,7 +388,8 @@ def calculate_acc_error(logits, label, show=True):
     acc = (1.0 * error_count) / (1.0 * len(label))
     if show:
         for key in error_dict.keys():
-            print 'label is %d, error number is %d' % (key, error_dict[key])
+            print 'label is %d, error number is %d, all number is %d, acc is %g'\
+                  % (key, error_dict[key], np.sum(label == key), 1-(error_dict[key]*1.0)/(np.sum(label == key) * 1.0))
             print 'error record　is ', error_dict_record[key]
     return error_dict, error_dict_record, acc, error_index, error_record
 
