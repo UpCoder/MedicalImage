@@ -90,24 +90,29 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         writer = tf.summary.FileWriter('./log/fine_tuning/train', tf.get_default_graph())
         val_writer = tf.summary.FileWriter('./log/fine_tuning/val', tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
-            images, labels = train_data_set.images, train_data_set.labels
+            images, labels = train_data_set.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
             feed_dict = {}
             for index in range(len(sub_Config.SIZES)):
                 feed_dict.setdefault(xs[index], images[index])
             feed_dict.setdefault(y_, labels)
-            _, loss_value, accuracy_value, summary = sess.run(
-                [train_op, loss_, accuracy_tensor, merge_op],
+            _, loss_value, accuracy_value, summary, global_step_value = sess.run(
+                [train_op, loss_, accuracy_tensor, merge_op, global_step],
                 feed_dict=feed_dict
             )
             writer.add_summary(
                 summary=summary,
-                global_step=i
+                global_step=global_step_value
             )
-            if i % 500 == 0 and i != 0 and save_model_path is not None:
+            if global_step_value % 500 == 0 and i != 0 and save_model_path is not None:
                 # 保存模型
-                saver.save(sess, save_model_path)
+                import os
+                save_path = os.path.join(save_model_path, str(global_step_value))
+                if not os.path.exists(save_path):
+                    os.mkdir(save_path)
+                save_path += '/'
+                saver.save(sess, save_path)
             if i % 100 == 0:
-                validation_images, validation_labels = val_data_set.images, val_data_set.labels
+                validation_images, validation_labels = val_data_set.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
                 feed_dict = {}
                 for index, _ in enumerate(sub_Config.SIZES):
                     feed_dict[xs[index]] = validation_images[index]
@@ -125,17 +130,17 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                     logits=np.argmax(logits, 1),
                     label=validation_labels,
                 )
-                val_writer.add_summary(summary, i)
+                val_writer.add_summary(summary, global_step_value)
                 print 'step is %d,training loss value is %g,  accuracy is %g ' \
                       'validation loss value is %g, accuracy is %g, binary_acc is %g' % \
-                      (i, loss_value, accuracy_value, validation_loss, validation_accuracy, binary_acc)
+                      (global_step_value, loss_value, accuracy_value, validation_loss, validation_accuracy, binary_acc)
         writer.close()
         val_writer.close()
 if __name__ == '__main__':
     phase_name = 'ART'
     state = ''
-    traindatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train'
-    valdatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val'
+    traindatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/train'
+    valdatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/val'
     val_dataset = ValDataSet(new_sizes=sub_Config.SIZES,
                              phase=phase_name,
                              category_number=sub_Config.OUTPUT_NODE,
@@ -150,6 +155,6 @@ if __name__ == '__main__':
     train(
         train_dataset,
         val_dataset,
-        load_model_path=None,
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5-Expand/'
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5/12500/',
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5/'
     )

@@ -36,6 +36,45 @@ class ValDataSet:
         print 'label is ', labels
         return diff_sized_images, labels, images_names
 
+    def get_next_batch(self, batch_size=None, distribution=None):
+        if batch_size is None:
+            return self.images, self.labels
+        else:
+            if distribution is None:
+                random_index = range(len(self.labels))
+                np.random.shuffle(random_index)
+                batch_index = random_index[:batch_size]
+                batch_images = []
+                batch_labels = []
+                for index in batch_index:
+                    batch_images.append(
+                        self.images[index]
+                    )
+                    batch_labels.append(
+                        self.labels[index]
+                    )
+                return batch_images, batch_labels
+            else:
+                images = {}
+                labels = []
+                for index, count in enumerate(distribution):
+                    cur_indexs = (np.array(self.labels) == index)
+                    random_index = range(len(self.labels))
+                    np.random.shuffle(random_index)
+                    count = 0
+                    for cur_index in random_index:
+                        if cur_indexs[cur_index]:
+                            count += 1
+                            for size_index in range(len(self.images)):
+                                if size_index not in images.keys():
+                                    images[size_index] = [self.images[size_index][cur_index]]
+                                else:
+                                    images[size_index].append(self.images[size_index][cur_index])
+                            labels.append(self.labels[cur_index])
+                        if count >= distribution[index]:
+                            break
+                return images, labels
+
     @staticmethod
     def load_data_path(path, new_size, phase_name, avg_liver_dict, category_number):
         def get_phase_index(phase):

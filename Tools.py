@@ -267,8 +267,6 @@ def get_distribution_label(labels):
 
 #　将数据打乱
 def shuffle_image_label(images, labels):
-    print len(images)
-    print len(labels)
     labels = np.array(labels)
     if len(images) == 2:
         random_index = range(len(images[0]))

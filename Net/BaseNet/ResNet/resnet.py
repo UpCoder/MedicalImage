@@ -319,7 +319,8 @@ def conv(x, c):
 
     filters_in = x.get_shape()[-1]
     shape = [ksize, ksize, filters_in, filters_out]
-    initializer = tf.truncated_normal_initializer(stddev=CONV_WEIGHT_STDDEV)
+    # initializer = tf.truncated_normal_initializer(stddev=CONV_WEIGHT_STDDEV)
+    initializer = tf.contrib.layers.xavier_initializer()
     weights = _get_variable('weights',
                             shape=shape,
                             dtype='float',

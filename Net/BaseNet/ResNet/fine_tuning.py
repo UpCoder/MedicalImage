@@ -32,7 +32,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         'label',
         y_
     )
-    # global_step = tf.Variable(0, trainable=False)
+    global_step = tf.Variable(0, trainable=False)
     # variable_average = tf.train.ExponentialMovingAverage(
     #     sub_Config.MOVING_AVERAGE_DECAY,
     #     global_step
@@ -65,7 +65,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         learning_rate=sub_Config.LEARNING_RATE
     ).minimize(
         loss=loss_,
-        # global_step=global_step
+        global_step=global_step
     )
     # with tf.control_dependencies([train_step, vaeriable_average_op]):
     #     train_op = tf.no_op(name='train')
@@ -91,19 +91,15 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         writer = tf.summary.FileWriter('./log/fine_tuning/train', tf.get_default_graph())
         val_writer = tf.summary.FileWriter('./log/fine_tuning/val', tf.get_default_graph())
         for i in range(sub_Config.ITERATOE_NUMBER):
-            images, labels = train_data_set.images, train_data_set.labels
+            images, labels = train_data_set.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
             images = changed_shape(images, [
                     len(images),
                     sub_Config.IMAGE_W,
                     sub_Config.IMAGE_W,
                     sub_Config.IMAGE_CHANNEL
                 ])
-            if i == 0:
-                from PIL import Image
-                image = Image.fromarray(np.asarray(images[0, :, :, 0], np.uint8))
-                image.show()
-            _, loss_value, accuracy_value, summary = sess.run(
-                [train_op, loss_, accuracy_tensor, merge_op],
+            _, loss_value, accuracy_value, summary, global_step_value = sess.run(
+                [train_op, loss_, accuracy_tensor, merge_op, global_step],
                 feed_dict={
                     x: images,
                     y_: labels
@@ -111,13 +107,18 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
             )
             writer.add_summary(
                 summary=summary,
-                global_step=i
+                global_step=global_step_value
             )
             if i % 500 == 0 and i != 0 and save_model_path is not None:
                 # 保存模型
-                saver.save(sess, save_model_path)
+                import os
+                saveedpath = os.path.join(save_model_path, str(global_step_value))
+                if not os.path.exists(saveedpath):
+                    os.mkdir(saveedpath)
+                saveedpath += '/'
+                saver.save(sess, saveedpath)
             if i % 100 == 0:
-                validation_images, validation_labels = val_data_set.images, val_data_set.labels
+                validation_images, validation_labels = val_data_set.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
                 validation_images = changed_shape(
                     validation_images,
                     [
@@ -143,27 +144,30 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                     logits=np.argmax(logits, 1),
                     label=validation_labels,
                 )
-                val_writer.add_summary(summary, i)
+                val_writer.add_summary(summary, global_step_value)
                 print 'step is %d,training loss value is %g,  accuracy is %g ' \
                       'validation loss value is %g, accuracy is %g, binary_acc is %g' % \
-                      (i, loss_value, accuracy_value, validation_loss, validation_accuracy, binary_acc)
+                      (global_step_value, loss_value, accuracy_value, validation_loss, validation_accuracy, binary_acc)
         writer.close()
         val_writer.close()
 if __name__ == '__main__':
     phase_name = 'ART'
     state = ''
+    traindatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/train'
+    valdatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/val'
     val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
                              phase=phase_name,
                              category_number=sub_Config.OUTPUT_NODE,
-                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state +'/val')
+                             data_path=valdatapath
+                             )
     train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
                                phase=phase_name,
                                category_number=sub_Config.OUTPUT_NODE,
-                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train'
+                               data_path=traindatapath
                                )
     train(
         train_dataset,
         val_dataset,
         load_model_path=None,
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5_64/'
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5-64/'
     )

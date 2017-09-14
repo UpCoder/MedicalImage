@@ -109,6 +109,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path,phases_
                 save_path = os.path.join(save_model_path, str(global_step_value))
                 if not os.path.exists(save_path):
                     os.mkdir(save_path)
+                save_path += '/'
                 saver.save(sess, save_path)
             if i % 100 == 0:
                 validation_images, validation_labels = val_data_set.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.DISTRIBUTION)
@@ -153,7 +154,7 @@ if __name__ == '__main__':
     train(
         train_dataset,
         val_dataset,
-        load_model_path=None,
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3/model/fine_tuning/5-128/11000/',
         save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3/model/fine_tuning/5-128/',
         phases_names=phase_names
     )

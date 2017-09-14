@@ -90,9 +90,9 @@ if __name__ == '__main__':
                              phase=phase_name,
                              category_number=sub_Config.OUTPUT_NODE,
                              shuffle=False,
-                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state +'/val')
+                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/val')
     error_index, error_record = train(
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5/'
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5/21000/'
     )
     val_dataset.show_error_name(error_index, error_record)

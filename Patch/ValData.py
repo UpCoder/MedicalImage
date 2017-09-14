@@ -3,6 +3,7 @@
 import os
 from Tools import read_mhd_images, shuffle_image_label, extract_avg_liver_dict, read_mhd_image, save_mhd_image
 import shutil
+import numpy as np
 
 
 class ValDataSet:
@@ -17,6 +18,43 @@ class ValDataSet:
                                                                                self.category_number)
         if shuffle:
             self.images, self.labels = shuffle_image_label(self.images, self.labels)
+
+    def get_next_batch(self, batch_size=None, distribution=None):
+        if batch_size is None:
+            return self.images, self.labels
+        else:
+            if distribution is None:
+                random_index = range(len(self.labels))
+                np.random.shuffle(random_index)
+                batch_index = random_index[:batch_size]
+                batch_images = []
+                batch_labels = []
+                for index in batch_index:
+                    batch_images.append(
+                        self.images[index]
+                    )
+                    batch_labels.append(
+                        self.labels[index]
+                    )
+                batch_images, batch_labels = shuffle_image_label(batch_images, batch_labels)
+                return batch_images, batch_labels
+            else:
+                images = []
+                labels = []
+                for index, count in enumerate(distribution):
+                    cur_indexs = (np.array(self.labels) == index)
+                    random_index = range(len(self.labels))
+                    np.random.shuffle(random_index)
+                    count = 0
+                    for cur_index in random_index:
+                        if cur_indexs[cur_index]:
+                            count += 1
+                            images.append(self.images[cur_index])
+                            labels.append(self.labels[cur_index])
+                        if count >= distribution[index]:
+                            break
+                images, labels = shuffle_image_label(images, labels)
+                return images, labels
 
     @staticmethod
     def load_data_path(path, new_size, phase_name, avg_liver_dict, category_number):

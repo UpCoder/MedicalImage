@@ -81,10 +81,10 @@ if __name__ == '__main__':
                                        phases=phase_names,
                                        shuffle=False,
                                        category_number=sub_Config.OUTPUT_NODE,
-                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/val'
+                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val'
                                        )
     val(
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3/model/fine_tuning/5-128/',
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3/model/fine_tuning/5-128/14500/',
         phases_names=phase_names
     )
