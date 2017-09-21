@@ -123,6 +123,12 @@ def train(train_data_set, val_data_set, phase_names, load_model_path, save_model
             )
             if i % 500 == 0 and i != 0 and save_model_path is not None:
                 # 保存模型
+                import os
+                save_path = os.path.join(save_model_path, str(global_step_value))
+                if not os.path.exists(save_path):
+                    os.mkdir(save_path)
+                save_path += '/'
+                saver.save(sess, save_path)
                 saver.save(sess, save_model_path)
             if i % 100 == 0:
                 validation_images, validation_labels = val_data_set.images, val_data_set.labels
@@ -160,12 +166,12 @@ def train(train_data_set, val_data_set, phase_names, load_model_path, save_model
 if __name__ == '__main__':
     phase_names = ['NC', 'ART', 'PV']
     # state = '_Expand'
-    state = ''
+    state = 'Multi'
     val_dataset = ValDataSetMultiPhase(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
                                        phases=phase_names,
                                        shuffle=False,
                                        category_number=sub_Config.OUTPUT_NODE,
-                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state + '/val')
+                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val')
     print 'val label is '
     # print val_dataset.labels
     train_dataset = ValDataSetMultiPhase(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],

@@ -19,3 +19,5 @@ git add ./Net/BaseNet/LeNet_3/*.py
 git add ./Net/BaseNet/ResNet/*.py
 git add ./Net/BaseNet/ResNet_3/*.py
 git add ./Net/BaseNet/ResNetMultiScale/*.py
+git add ./Net/BaseNet/ResNet_3_Expand/*.py
+git add ./tools/*.py

@@ -45,7 +45,7 @@ class Config():
 
     BATCH_SIZE = 800
 
-    OUTPUT_NODE = 2
+    OUTPUT_NODE = 5
     IMAGE_W = 64
     IMAGE_H = 64
     IMAGE_CHANNEL = 1

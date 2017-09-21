@@ -1,7 +1,9 @@
 class Config:
     MODEL_SAVE_PATH = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model/'
-    IMAGE_W = 64
-    IMAGE_H = 64
+    ROI_SIZE_W = 64
+    ROI_SIZE_H = 64
+    EXPAND_SIZE_W = 128
+    EXPAND_SIZE_H = 128
     IMAGE_CHANNEL = 1
     phase_name = 'ART'
     MOMENTUM = 0.9

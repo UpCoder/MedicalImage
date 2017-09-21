@@ -27,8 +27,7 @@ tf.app.flags.DEFINE_integer('input_size', 224, "input image size")
 
 activation = tf.nn.relu
 
-conv_params_num = 0
-fc_params_num = 0
+
 def inference(x, is_training,
               num_classes=1000,
               num_blocks=[3, 4, 6, 3],  # defaults to 50-layer network
@@ -91,6 +90,7 @@ def inference(x, is_training,
 # See Section 4.2 in http://arxiv.org/abs/1512.03385
 def inference_small(xs,
                     is_training,
+                    phase_names,
                     num_blocks=3, # 6n+2 total weight layers will be used.
                     use_bias=False, # defaults to using batch norm
                     num_classes=10):
@@ -102,48 +102,55 @@ def inference_small(xs,
     c['fc_units_out'] = num_classes
     c['num_blocks'] = num_blocks
     c['num_classes'] = num_classes
-    return inference_small_config(xs, c)
+    return inference_small_config(xs, c, phase_names)
 
-def inference_small_config(xs, c):
+
+def inference_small_config(xs_expand, c, phase_names, xs_names=['ROI','EXPAND']):
     c['bottleneck'] = False
     c['ksize'] = 3
     c['stride'] = 1
-    multi_size_out = None
-    for index, x in enumerate(xs):
-        x = tf.expand_dims(x, axis=3)
-        with tf.variable_scope('size_'+str(index)):
-            with tf.variable_scope('scale1'):
-                c['conv_filters_out'] = 16
-                c['block_filters_internal'] = 16
-                c['stack_stride'] = 1
-                x = conv(x, c)
-                x = bn(x, c)
-                x = activation(x)
-                x = stack(x, c)
+    CONV_OUT = None
+    for xs_index, xs in enumerate(xs_expand):
+        with tf.variable_scope(xs_names[xs_index]):
+            for index, phase_name in (enumerate(phase_names)):
+                x = xs[:, :, :, index]
+                x = tf.expand_dims(
+                    x,
+                    dim=3
+                )
+                with tf.variable_scope(phase_name):
+                    with tf.variable_scope('scale1'):
+                        c['conv_filters_out'] = 16
+                        c['block_filters_internal'] = 16
+                        c['stack_stride'] = 1
+                        x = conv(x, c)
+                        x = bn(x, c)
+                        x = activation(x)
+                        x = stack(x, c)
 
-            with tf.variable_scope('scale2'):
-                c['block_filters_internal'] = 32
-                c['stack_stride'] = 2
-                x = stack(x, c)
+                    with tf.variable_scope('scale2'):
+                        c['block_filters_internal'] = 32
+                        c['stack_stride'] = 2
+                        x = stack(x, c)
 
-            with tf.variable_scope('scale3'):
-                c['block_filters_internal'] = 64
-                c['stack_stride'] = 2
-                x = stack(x, c)
-
-            # post-net
-            x = tf.reduce_mean(x, reduction_indices=[1, 2], name="avg_pool")
-            if multi_size_out is None:
-                multi_size_out = x
-
-            else:
-                multi_size_out = tf.concat([multi_size_out, x], axis=1)
-            print multi_size_out
+                    with tf.variable_scope('scale3'):
+                        c['block_filters_internal'] = 64
+                        c['stack_stride'] = 2
+                        x = stack(x, c)
+                    # post-net
+                    x = tf.reduce_mean(x, reduction_indices=[1, 2], name="avg_pool")
+                    if c['num_classes'] != None:
+                        with tf.variable_scope('fc'):
+                            x = fc(x, c)
+                    if CONV_OUT is None:
+                        CONV_OUT = x
+                    else:
+                        CONV_OUT = tf.concat([CONV_OUT, x], axis=1)
+                    print CONV_OUT
+    print 'final fc input is ', CONV_OUT
     if c['num_classes'] != None:
         with tf.variable_scope('fc'):
-            x = fc(multi_size_out, c)
-    print 'fc_params_num number is ', fc_params_num
-    print 'conv_params_num number is ', conv_params_num
+            x = fc(CONV_OUT, c)
     return x
 
 
@@ -286,6 +293,7 @@ def bn(x, c):
 
 def fc(x, c):
     num_units_in = x.get_shape()[1]
+    print num_units_in
     num_units_out = c['fc_units_out']
     weights_initializer = tf.truncated_normal_initializer(
         stddev=FC_WEIGHT_STDDEV)
@@ -294,13 +302,6 @@ def fc(x, c):
                             shape=[num_units_in, num_units_out],
                             initializer=weights_initializer,
                             weight_decay=FC_WEIGHT_STDDEV)
-    print 'weights is ', weights
-    shape = weights.get_shape().as_list()
-    cur_params_num = 1
-    global fc_params_num
-    for shape_1 in shape:
-        cur_params_num *= shape_1
-    fc_params_num += cur_params_num
     biases = _get_variable('biases',
                            shape=[num_units_out],
                            initializer=tf.zeros_initializer)
@@ -343,13 +344,6 @@ def conv(x, c):
                             dtype='float',
                             initializer=initializer,
                             weight_decay=CONV_WEIGHT_DECAY)
-    print 'weights is ', weights
-    cur_params_num = 1
-    global conv_params_num
-    shape = weights.get_shape().as_list()
-    for shape_1 in shape:
-        cur_params_num *= shape_1
-    conv_params_num += cur_params_num
     return tf.nn.conv2d(x, weights, [1, stride, stride, 1], padding='SAME')
 
 
@@ -368,17 +362,19 @@ if __name__ == '__main__':
     y = inference_small([tf.placeholder(
         tf.float32,
         [
-            20,
-            64,
-            64
+            30,
+            32,
+            32,
+            3
         ]
-    ),tf.placeholder(
+    ), tf.placeholder(
         tf.float32,
         [
-            20,
-            128,
-            128
+            30,
+            32,
+            32,
+            3
         ]
-    )], is_training=is_training, num_classes=2, use_bias=FLAGS.use_bn,
+    )], is_training=is_training, num_classes=5, use_bias=FLAGS.use_bn,phase_names=['NC','ART','PV'],
                         num_blocks=3)
-    print y
+    print 'logits is ', y

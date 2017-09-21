@@ -9,7 +9,7 @@ from Tools import changed_shape, calculate_acc_error, acc_binary_acc
 import numpy as np
 from Patch.ValData import ValDataSet
 from Patch.Config import Config as patch_config
-
+tf.app.flags.DEFINE_integer('input_size', 224, "input image size")
 
 def train(train_data_set, val_data_set, load_model_path, save_model_path):
     x = tf.placeholder(
@@ -115,8 +115,8 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                 saveedpath = os.path.join(save_model_path, str(global_step_value))
                 if not os.path.exists(saveedpath):
                     os.mkdir(saveedpath)
-                saveedpath += '/'
-                saver.save(sess, saveedpath)
+                saveedpath += '/model.ckpt'
+                saver.save(sess, saveedpath, global_step=global_step_value)
             if i % 100 == 0:
                 validation_images, validation_labels = val_data_set.get_next_batch(sub_Config.BATCH_SIZE, sub_Config.BATCH_DISTRIBUTION)
                 validation_images = changed_shape(
@@ -150,6 +150,54 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
                       (global_step_value, loss_value, accuracy_value, validation_loss, validation_accuracy, binary_acc)
         writer.close()
         val_writer.close()
+
+
+def run_for_resnet_train():
+    from Net.BaseNet.ResNet.resnet_train import train
+    phase_name = 'ART'
+    traindatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/train'
+    valdatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/val'
+    val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                             phase=phase_name,
+                             category_number=sub_Config.OUTPUT_NODE,
+                             data_path=valdatapath
+                             )
+    train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
+                               phase=phase_name,
+                               category_number=sub_Config.OUTPUT_NODE,
+                               data_path=traindatapath
+                               )
+    x = tf.placeholder(
+        tf.float32,
+        shape=[
+            None,
+            sub_Config.IMAGE_W,
+            sub_Config.IMAGE_H,
+            sub_Config.IMAGE_CHANNEL
+        ],
+        name='input_x'
+    )
+    y_ = tf.placeholder(
+        tf.float32,
+        shape=[
+            None,
+        ]
+    )
+    is_training = tf.placeholder('bool', [], name='is_training')
+    FLAGS = tf.app.flags.FLAGS
+    tf.app.flags.DEFINE_boolean('use_bn', True, 'use batch normalization. otherwise use biases')
+    logits = inference_small(x,
+                             is_training=is_training,
+                             num_classes=sub_Config.OUTPUT_NODE,
+                             use_bias=FLAGS.use_bn,
+                             num_blocks=3)
+    train(
+        train_generator=train_dataset,
+        val_generator=val_dataset,
+        logits=logits,
+        images_tensor=x,
+        labeles=y_
+    )
 if __name__ == '__main__':
     phase_name = 'ART'
     state = ''
@@ -168,6 +216,7 @@ if __name__ == '__main__':
     train(
         train_dataset,
         val_dataset,
+        # load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5-64/21001/',
         load_model_path=None,
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5-64/'
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5-64'
     )

@@ -22,7 +22,6 @@ RESNET_VARIABLES = 'resnet_variables'
 UPDATE_OPS_COLLECTION = 'resnet_update_ops'  # must be grouped with training op
 IMAGENET_MEAN_BGR = [103.062623801, 115.902882574, 123.151630838, ]
 
-tf.app.flags.DEFINE_integer('input_size', 224, "input image size")
 
 
 activation = tf.nn.relu

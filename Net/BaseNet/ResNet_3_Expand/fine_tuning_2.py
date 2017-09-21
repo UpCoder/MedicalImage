@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 使用ｐａｔｃｈ训练好的模型，来对ＲＯＩ进行微调
-from inference import inference
+from resnet import inference_small, loss
 import tensorflow as tf
 from Config import Config as sub_Config
 from Slice.MaxSlice.MaxSlice_Resize import MaxSlice_Resize
@@ -23,17 +23,6 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
         ],
         name='input_x'
     )
-    if sub_Config.NEED_MUL:
-        tf.summary.image(
-            'input_x',
-            x * 120,
-            max_outputs=5
-        )
-    else:
-        tf.summary.image(
-            'input_x',
-            x
-        )
     y_ = tf.placeholder(
         tf.float32,
         shape=[
@@ -50,26 +39,32 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
     #     global_step
     # )
     # vaeriable_average_op = variable_average.apply(tf.trainable_variables())
-    regularizer = tf.contrib.layers.l2_regularizer(sub_Config.REGULARIZTION_RATE)
-    y = inference(x, regularizer)
+    is_training = tf.placeholder('bool', [], name='is_training')
+    FLAGS = tf.app.flags.FLAGS
+    tf.app.flags.DEFINE_string('data_dir', '/tmp/cifar-data',
+                               'where to store the dataset')
+    tf.app.flags.DEFINE_boolean('use_bn', True, 'use batch normalization. otherwise use biases')
+    y = inference_small(x, is_training=is_training,
+                        num_classes=sub_Config.OUTPUT_NODE,
+                        use_bias=FLAGS.use_bn,
+                        num_blocks=3)
     tf.summary.histogram(
         'logits',
         tf.argmax(y, 1)
     )
-    loss = tf.reduce_mean(
-        tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=y,
-            labels=tf.cast(y_, tf.int32)
-        )
-    ) + tf.add_n(tf.get_collection('losses'))
+    loss_ = loss(
+        logits=y,
+        labels=tf.cast(y_, np.int32)
+
+    )
     tf.summary.scalar(
         'loss',
-        loss
+        loss_
     )
     train_op = tf.train.GradientDescentOptimizer(
         learning_rate=sub_Config.LEARNING_RATE
     ).minimize(
-        loss=loss,
+        loss=loss_,
         global_step=global_step
     )
     # with tf.control_dependencies([train_step, vaeriable_average_op]):
@@ -118,7 +113,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
             # labels[labels == 4] = 1
             # labels[labels == 2] = 1
             _, loss_value, accuracy_value, summary, global_step_value = sess.run(
-                [train_op, loss, accuracy_tensor, merge_op, global_step],
+                [train_op, loss_, accuracy_tensor, merge_op, global_step],
                 feed_dict={
                     x: images,
                     y_: labels
@@ -130,13 +125,6 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
             )
             if i % 500 == 0 and i != 0 and save_model_path is not None:
                 # 保存模型
-                save_weights(save_model_path+'model_weights.npy', [
-                    'conv1_1',
-                    'conv2_1',
-                    'conv3_1',
-                    'fc1',
-                    'fc2'
-                ])
                 saver.save(sess, save_model_path)
             if i % 100 == 0:
                 validation_images, validation_labels = val_data_set.images, val_data_set.labels
@@ -179,19 +167,19 @@ if __name__ == '__main__':
                              phase=phase_name,
                              shuffle=False,
                              category_number=sub_Config.OUTPUT_NODE,
-                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val')
+                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI' + state + '/val')
     print 'val label is '
     # print val_dataset.labels
     train_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
                                phase=phase_name,
                                shuffle=False,
                                category_number=sub_Config.OUTPUT_NODE,
-                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/train')
+                               data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIAugmented/train')
     # print np.shape(train_dataset.labels)
     train(
         train_dataset,
         val_dataset,
         # load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/2/art/',
         load_model_path=None,
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/LeNet/model_finetuing/2/' + phase_name.lower() +state +'/'
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/2/'
     )

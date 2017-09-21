@@ -101,9 +101,9 @@ if __name__ == '__main__':
     val_dataset = ValDataSet(new_size=[sub_Config.IMAGE_W, sub_Config.IMAGE_H],
                              phase=phase_name,
                              category_number=sub_Config.OUTPUT_NODE,
-                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/val')
+                             data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val')
     error_indexs, error_record = val(
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/5-128/'
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet/models/fine_tuning/2/'
     )
     val_dataset.show_error_name(error_indexs, error_record, copy=False)

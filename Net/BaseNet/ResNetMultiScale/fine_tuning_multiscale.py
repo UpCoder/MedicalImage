@@ -139,8 +139,8 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path):
 if __name__ == '__main__':
     phase_name = 'ART'
     state = ''
-    traindatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/train'
-    valdatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMulti/val'
+    traindatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/train'
+    valdatapath = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI/val'
     val_dataset = ValDataSet(new_sizes=sub_Config.SIZES,
                              phase=phase_name,
                              category_number=sub_Config.OUTPUT_NODE,
@@ -155,6 +155,6 @@ if __name__ == '__main__':
     train(
         train_dataset,
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5/12500/',
-        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/5/'
+        load_model_path=None,
+        save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiScale/models/fine_tuning/2/'
     )

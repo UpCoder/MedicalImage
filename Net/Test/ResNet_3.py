@@ -85,6 +85,6 @@ if __name__ == '__main__':
                                        )
     val(
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3/model/fine_tuning/5-128/14500/',
+        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3/model/fine_tuning/5-64/0.80-2000/',
         phases_names=phase_names
     )

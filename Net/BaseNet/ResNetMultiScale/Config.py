@@ -6,14 +6,11 @@ class Config:
     ]
     IMAGE_CHANNEL = 1
     phase_name='ART'
-    OUTPUT_NODE = 5
     ITERATOE_NUMBER = int(1e+4)
     LEARNING_RATE = 1e-4
     BATCH_SIZE = 100
+    OUTPUT_NODE = 2
     BATCH_DISTRIBUTION = [
-        20,
-        20,
-        20,
-        20,
-        20
+        50,
+        50,
     ]
