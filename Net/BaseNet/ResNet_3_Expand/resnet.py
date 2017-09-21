@@ -1,3 +1,4 @@
+# -*- coding=utf-8 -*-
 import skimage.io  # bug. need to import this before tensorflow
 import skimage.transform  # bug. need to import this before tensorflow
 import tensorflow as tf
@@ -102,17 +103,70 @@ def inference_small(xs,
     c['fc_units_out'] = num_classes
     c['num_blocks'] = num_blocks
     c['num_classes'] = num_classes
-    return inference_small_config(xs, c, phase_names)
+    return inference_small_config_pre(xs, c, phase_names)
 
 
-def inference_small_config(xs_expand, c, phase_names, xs_names=['ROI','EXPAND']):
+# ConvNet->reduce_mean->concat->FC
+def inference_small_config_pre(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], ksize=[3, 3]):
     c['bottleneck'] = False
-    c['ksize'] = 3
     c['stride'] = 1
     CONV_OUT = None
     for xs_index, xs in enumerate(xs_expand):
         with tf.variable_scope(xs_names[xs_index]):
             for index, phase_name in (enumerate(phase_names)):
+                c['ksize'] = ksize[xs_index]
+                x = xs[:, :, :, index]
+                x = tf.expand_dims(
+                    x,
+                    dim=3
+                )
+                with tf.variable_scope(phase_name):
+                    with tf.variable_scope('scale1'):
+                        c['conv_filters_out'] = 16
+                        c['block_filters_internal'] = 16
+                        c['stack_stride'] = 1
+                        x = conv(x, c)
+                        x = bn(x, c)
+                        x = activation(x)
+                        x = stack(x, c)
+
+                    with tf.variable_scope('scale2'):
+                        c['block_filters_internal'] = 32
+                        c['stack_stride'] = 2
+                        x = stack(x, c)
+
+                    with tf.variable_scope('scale3'):
+                        c['block_filters_internal'] = 64
+                        c['stack_stride'] = 2
+                        x = stack(x, c)
+                    # post-net
+                    x = tf.reduce_mean(x, reduction_indices=[1, 2], name="avg_pool")
+                    # if c['num_classes'] != None:
+                    #     print 'before fc layers, the dimension: ', x
+                    #     with tf.variable_scope('fc'):
+                    #         x = fc(x, c)
+                    if CONV_OUT is None:
+                        CONV_OUT = x
+                    else:
+                        CONV_OUT = tf.concat([CONV_OUT, x], axis=1)
+                    print CONV_OUT
+    print 'final fc input is ', CONV_OUT
+    if c['num_classes'] != None:
+        print 'before fc layers, the dimension: ', CONV_OUT
+        with tf.variable_scope('fc'):
+            x = fc(CONV_OUT, c)
+    return x
+
+
+# ConvNet->reduce_mean->FC->concat->FC
+def inference_small_config(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], ksize=[3, 3]):
+    c['bottleneck'] = False
+    c['stride'] = 1
+    CONV_OUT = None
+    for xs_index, xs in enumerate(xs_expand):
+        with tf.variable_scope(xs_names[xs_index]):
+            for index, phase_name in (enumerate(phase_names)):
+                c['ksize'] = ksize[xs_index]
                 x = xs[:, :, :, index]
                 x = tf.expand_dims(
                     x,
@@ -140,6 +194,7 @@ def inference_small_config(xs_expand, c, phase_names, xs_names=['ROI','EXPAND'])
                     # post-net
                     x = tf.reduce_mean(x, reduction_indices=[1, 2], name="avg_pool")
                     if c['num_classes'] != None:
+                        print 'before fc layers, the dimension: ', x
                         with tf.variable_scope('fc'):
                             x = fc(x, c)
                     if CONV_OUT is None:
@@ -221,14 +276,16 @@ def block(x, c):
     else:
         with tf.variable_scope('A'):
             c['stride'] = c['block_stride']
-            assert c['ksize'] == 3
+            # assert c['ksize'] == 3
+            c['ksize'] = 3
             x = conv(x, c)
             x = bn(x, c)
             x = activation(x)
 
         with tf.variable_scope('B'):
             c['conv_filters_out'] = filters_out
-            assert c['ksize'] == 3
+            # assert c['ksize'] == 3
+            c['ksize'] = 3
             assert c['stride'] == 1
             x = conv(x, c)
             x = bn(x, c)
