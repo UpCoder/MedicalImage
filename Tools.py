@@ -73,7 +73,7 @@ def read_mhd_images(paths, new_size=None, avg_liver_values=None):
         cur_image = read_mhd_image(path)
         cur_img = np.asarray(cur_image, np.float32)
         if avg_liver_values is not None:
-            for i in range(1):
+            for i in range(0):
                 cur_img = cur_img * cur_img
                 cur_img = cur_img / avg_liver_values[index]
         if new_size is not None:

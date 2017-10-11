@@ -21,3 +21,5 @@ git add ./Net/BaseNet/ResNet_3/*.py
 git add ./Net/BaseNet/ResNetMultiScale/*.py
 git add ./Net/BaseNet/ResNet_3_Expand/*.py
 git add ./tools/*.py
+git add ./lirads/prepare/*.ipynb
+git add ./lirads/ResNet_3_Expand/*.py

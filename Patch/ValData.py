@@ -75,10 +75,10 @@ class ValDataSet:
             # print case_name
             print 'case name is ', case_name
             print case_name.split('_')[0]
-            srrid = int(case_name.split('_')[0])
-            phase_index = get_phase_index(phase=phase_name)
-            avg_liver_value = avg_liver_dict[srrid][phase_index]
-            avg_liver_values.append(avg_liver_value)
+            # srrid = int(case_name.split('_')[0])
+            # phase_index = get_phase_index(phase=phase_name)
+            # avg_liver_value = avg_liver_dict[srrid][phase_index]
+            # avg_liver_values.append(avg_liver_value)
             cur_path = os.path.join(path, case_name, phase_name + suffix_name)
             print cur_path
             # print case_name
