@@ -7,7 +7,7 @@ import numpy as np
 
 
 class ValDataSet:
-    def __init__(self, data_path, new_size, shuffle=True, phase='ART', category_number=5, suffix_name='_ROI.mhd'):
+    def __init__(self, data_path, new_size, shuffle=True, phase='ART', category_number=5, label_index_start=0, suffix_name='_ROI.mhd'):
         self.data_path = data_path
         self.phase = phase
         self.shuffle = True
@@ -16,6 +16,7 @@ class ValDataSet:
         self.images, self.labels, self.image_names = ValDataSet.load_data_path(data_path, new_size, self.phase,
                                                                                self.avg_liver_dict,
                                                                                self.category_number,
+                                                                               label_index_start,
                                                                                suffix_name=suffix_name)
         if shuffle:
             self.images, self.labels = shuffle_image_label(self.images, self.labels)
@@ -58,7 +59,7 @@ class ValDataSet:
                 return images, labels
 
     @staticmethod
-    def load_data_path(path, new_size, phase_name, avg_liver_dict, category_number, suffix_name='_ROI.mhd'):
+    def load_data_path(path, new_size, phase_name, avg_liver_dict, category_number, label_start_index, suffix_name='_ROI.mhd'):
         def get_phase_index(phase):
             if phase == 'NC':
                 return 0
@@ -82,12 +83,12 @@ class ValDataSet:
             cur_path = os.path.join(path, case_name, phase_name + suffix_name)
             print cur_path
             # print case_name
-            cur_label = int(case_name[-1])
+            cur_label = int(case_name[-1]) - label_start_index
             if category_number == 2:
-                if cur_label == 0 or cur_label == 1 or cur_label == 3:
+                if cur_label == 0 or cur_label == 1 or cur_label == 2:
                     cur_label = 0
                 else:
-                    if cur_label == 2 or cur_label == 4:
+                    if cur_label == 3 or cur_label == 4:
                         cur_label = 1
             labels.append(cur_label)
             image_pathes.append(cur_path)

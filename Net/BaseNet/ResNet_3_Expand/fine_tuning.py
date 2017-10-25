@@ -170,7 +170,7 @@ if __name__ == '__main__':
                                        phases=phase_names,
                                        shuffle=False,
                                        category_number=net_config.OUTPUT_NODE,
-                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMultiExpandHistEQ1/val'
+                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_Whole/val'
                                        )
     train_dataset = ValDataSetMultiPhase(new_sizes=[
         [net_config.ROI_SIZE_W, net_config.ROI_SIZE_H],
@@ -179,12 +179,13 @@ if __name__ == '__main__':
                                          phases=phase_names,
                                          category_number=net_config.OUTPUT_NODE,
                                          shuffle=False,
-                                         data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMultiExpandHistEQ/train'
+                                         data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_Whole/train'
                                          )
     train(
         train_dataset,
         val_dataset,
-        load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3_Expand/models/5/single_val/9901/',
+        # load_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3_Expand/models/5/single_val/9901/',
+        load_model_path=None,
         save_model_path='/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNet_3_Expand/models/5/single_val/',
         phases_names=phase_names
     )

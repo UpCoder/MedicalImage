@@ -10,6 +10,7 @@ class ValDataSetMultiPhase:
     def __init__(self, data_path,
                  new_sizes,
                  shuffle=True,
+                 label_index_start=0,
                  phases=['NC', 'ART', 'PV'],
                  category_number=5,
                  suffix_names=['_ROI.mhd', '_ROI_Expand.mhd']):
@@ -19,7 +20,7 @@ class ValDataSetMultiPhase:
         self.valdatasets_expand = []
         for phase in self.phases:
             self.valdatasets.append(
-                ValDataSet(data_path, new_sizes[0], shuffle, phase, category_number, suffix_name=suffix_names[0])
+                ValDataSet(data_path, new_sizes[0], shuffle, phase, category_number, label_index_start, suffix_name=suffix_names[0])
             )
         for phase in self.phases:
             self.valdatasets_expand.append(
@@ -88,7 +89,6 @@ class ValDataSetMultiPhase:
                     srrid,
                     'ART_Image.mhd'
                 )
-                # signficant = error_name.replace('ROI', 'SignificantLayers')
                 copy_mhd_image(significant, mhd_name)
                 print error_name, error_record[index], 'finish copy'
             else:
@@ -140,7 +140,8 @@ if __name__ == '__main__':
                                        phases=phase_names,
                                        shuffle=False,
                                        category_number=2,
-                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMultiExpand/train')
+                                       data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROIMultiExpand/train'
+                                       )
     print np.shape(val_dataset.images)
     print np.shape(val_dataset.images_expand)
     images, images_expand, label = val_dataset.get_next_batch()

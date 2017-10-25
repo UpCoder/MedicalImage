@@ -2,11 +2,10 @@
 # 使用ｐａｔｃｈ训练好的模型，来对ＲＯＩ进行微调
 from resnet import inference_small, loss
 import tensorflow as tf
-from Config import Config as net_config
 from Tools import changed_shape, calculate_acc_error, acc_binary_acc
 import numpy as np
 from Patch.ValDataMultiPhaseExpand import ValDataSetMultiPhase
-
+from net_config import Config as net_config
 
 def train(train_data_set, val_data_set, load_model_path, save_model_path,phases_names):
 
@@ -104,8 +103,6 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path,phases_
         val_writer = tf.summary.FileWriter('./log/fine_tuning/val', tf.get_default_graph())
         for i in range(net_config.ITERATOE_NUMBER):
             images, images_expand, labels = train_data_set.get_next_batch(net_config.BATCH_SIZE, net_config.DISTRIBUTION)
-            labels = np.array(labels)
-            labels = labels - 3
             _, loss_value, accuracy_value, summary, global_step_value = sess.run(
                 [train_op, loss_, accuracy_tensor, merge_op, global_step],
                 feed_dict={
@@ -137,9 +134,7 @@ def train(train_data_set, val_data_set, load_model_path, save_model_path,phases_
                 print 'mode saved path is ', save_path
                 saver.save(sess, save_path)
             if i % 100 == 0:
-                validation_images, validation_images_expand, validation_labels = val_data_set.get_next_batch()
-                validation_labels = np.array(validation_labels)
-                validation_labels = validation_labels - 3
+                validation_images, validation_images_expand, validation_labels = val_data_set.get_next_batch(net_config.BATCH_SIZE, net_config.DISTRIBUTION)
                 validation_accuracy, validation_loss, summary, logits = sess.run(
                     [accuracy_tensor, loss_, merge_op, y],
                     feed_dict={
@@ -172,18 +167,30 @@ if __name__ == '__main__':
     ],
                                        phases=phase_names,
                                        shuffle=False,
+                                       label_index_start=1,
                                        category_number=net_config.OUTPUT_NODE,
-                                       data_path='/home/give/Documents/dataset/LI-RADS/data/roi_data/category_by_level'
+                                       data_path='/home/give/Documents/dataset/LI-RADS/data/roi_data/Untitled Folder'
                                        )
     train_dataset = ValDataSetMultiPhase(new_sizes=[
         [net_config.ROI_SIZE_W, net_config.ROI_SIZE_H],
         [net_config.EXPAND_SIZE_W, net_config.EXPAND_SIZE_H],
     ],
                                          phases=phase_names,
+                                         label_index_start=1,
                                          category_number=net_config.OUTPUT_NODE,
                                          shuffle=False,
-                                         data_path='/home/give/Documents/dataset/LI-RADS/data/roi_data/category_by_level'
+                                         data_path='/home/give/Documents/dataset/LI-RADS/data/roi_data/Untitled Folder'
                                          )
+    train_images, train_image_expand, train_labels = train_dataset.get_next_batch(
+        net_config.BATCH_SIZE,
+        net_config.DISTRIBUTION
+    )
+    val_images, val_image_expand, val_labels = val_dataset.get_next_batch(
+        net_config.BATCH_SIZE,
+        net_config.DISTRIBUTION
+    )
+    # print np.shape(train_images), np.shape(train_image_expand), np.shape(train_labels)
+
     train(
         train_dataset,
         val_dataset,
