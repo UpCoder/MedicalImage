@@ -169,7 +169,7 @@ if __name__ == '__main__':
     ],
                                        phases=phase_names,
                                        shuffle=False,
-                                       category_number=net_config.OUTPUT_NODE,
+                                       category_number=[0, 1, 2, 3, 4],
                                        data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_Whole/val'
                                        )
     train_dataset = ValDataSetMultiPhase(new_sizes=[
@@ -177,7 +177,7 @@ if __name__ == '__main__':
         [net_config.EXPAND_SIZE_W, net_config.EXPAND_SIZE_H],
     ],
                                          phases=phase_names,
-                                         category_number=net_config.OUTPUT_NODE,
+                                         category_number=[0, 1, 2, 3, 4],
                                          shuffle=False,
                                          data_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_Whole/train'
                                          )

@@ -7,7 +7,7 @@ import numpy as np
 
 
 class ValDataSet:
-    def __init__(self, data_path, new_size, shuffle=True, phase='ART', category_number=5, label_index_start=0, suffix_name='_ROI.mhd'):
+    def __init__(self, data_path, new_size, shuffle=True, phase='ART', category_number=[0, 1, 2, 3, 4], label_index_start=0, suffix_name='_ROI.mhd'):
         self.data_path = data_path
         self.phase = phase
         self.shuffle = True
@@ -84,12 +84,16 @@ class ValDataSet:
             print cur_path
             # print case_name
             cur_label = int(case_name[-1]) - label_start_index
-            if category_number == 2:
-                if cur_label == 0 or cur_label == 1 or cur_label == 2:
-                    cur_label = 0
-                else:
-                    if cur_label == 3 or cur_label == 4:
-                        cur_label = 1
+            if cur_label in category_number:
+                cur_label = category_number.index(cur_label)
+            else:
+                continue
+            # if category_number == 2:
+            #     if cur_label == 0 or cur_label == 1 or cur_label == 2:
+            #         cur_label = 0
+            #     else:
+            #         if cur_label == 3 or cur_label == 4:
+            #             cur_label = 1
             labels.append(cur_label)
             image_pathes.append(cur_path)
 

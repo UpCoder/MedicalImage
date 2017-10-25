@@ -103,7 +103,7 @@ def inference_small(xs,
     c['fc_units_out'] = num_classes
     c['num_blocks'] = num_blocks
     c['num_classes'] = num_classes
-    return inference_small_config(xs, c, phase_names)
+    return inference_small_config_pre(xs, c, phase_names)
 
 
 # ConvNet->reduce_mean->concat->FC

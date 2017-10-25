@@ -12,7 +12,7 @@ class ValDataSetMultiPhase:
                  shuffle=True,
                  label_index_start=0,
                  phases=['NC', 'ART', 'PV'],
-                 category_number=5,
+                 category_number=[0, 1, 2, 3, 4],
                  suffix_names=['_ROI.mhd', '_ROI_Expand.mhd']):
         self.data_path = data_path
         self.phases = phases
