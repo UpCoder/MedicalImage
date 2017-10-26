@@ -24,3 +24,4 @@ git add ./tools/*.py
 git add ./lirads/prepare/*.ipynb
 git add ./lirads/ResNet_3_Expand/*.py
 git add ./ipynb/*.ipynb
+git add ./Net/BaseNet/ResNetMultiPhaseExpand/*.py
