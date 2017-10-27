@@ -1,5 +1,4 @@
-import skimage.io  # bug. need to import this before tensorflow
-import skimage.transform  # bug. need to import this before tensorflow
+# -*- coding=utf-8 -*-
 from resnet_train import train
 import tensorflow as tf
 import time
@@ -76,23 +75,42 @@ def distorted_inputs_unit(
     expand_images = tf.reshape(expand_images, shape=[FLAGS.batch_size, roi_expand_size, roi_expand_size, 3])
     return images, expand_images, tf.reshape(batch_label, [FLAGS.batch_size])
 
-def distorted_inputs():
-    parent_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_pickup'
-    def generate_paths(dir_name, state):
-        roi_paths = []
-        roi_expand_paths = []
-        labels = []
 
-        cur_dir = os.path.join(dir_name, state)
-        names = os.listdir(cur_dir)
-        for name in names:
-            cur_path = os.path.join(cur_dir, name)
+parent_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_pickup'
+def generate_paths(dir_name, state, target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]):
+    '''
+    返回dirname中的所有病灶图像的路径
+    :param dir_name:  父文件夹的路径
+    :param state: 状态，一般来说父文件夹有两个状态 train 和val
+    :param target_labels: 需要文件标注的label
+    :param true_labels: 训练的label
+    :return:
+    '''
+    roi_paths = []
+    roi_expand_paths = []
+    labels = []
+
+    cur_dir = os.path.join(dir_name, state)
+    names = os.listdir(cur_dir)
+    for name in names:
+        target_label = int(name[-1])
+        if target_label not in target_labels:
+            # 不是我们训练的目标
+            continue
+        labels.append(true_labels[target_labels.index(target_label)])
+        cur_path = os.path.join(cur_dir, name)
+        roi_paths.append(os.path.join(cur_path, 'roi.png'))
+        roi_expand_paths.append(os.path.join(cur_path, 'roi_expand.png'))
+        if target_label in [1, 3, 4] and state == 'train':
+            # 重采样
+            labels.append(true_labels[target_labels.index(target_label)])
             roi_paths.append(os.path.join(cur_path, 'roi.png'))
             roi_expand_paths.append(os.path.join(cur_path, 'roi_expand.png'))
-            labels.append(int(name[-1]))
-        return roi_paths, roi_expand_paths, labels
-    trains_output = generate_paths(parent_dir, 'train')
-    vals_output = generate_paths(parent_dir, 'val')
+    return roi_paths, roi_expand_paths, labels
+
+def distorted_inputs(target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]):
+    trains_output = generate_paths(parent_dir, 'train', target_labels, true_labels)
+    vals_output = generate_paths(parent_dir, 'val', target_labels, true_labels)
     return distorted_inputs_unit(
         trains_output[0],
         trains_output[1],
@@ -110,7 +128,10 @@ def distorted_inputs():
 
 
 def main(_):
-    [train_images, train_expand_images, train_labels], [val_images, val_expand_images, val_labels] = distorted_inputs()
+    [train_images, train_expand_images, train_labels], [val_images, val_expand_images, val_labels] = distorted_inputs(
+        target_labels=[0, 1, 2, 3],
+        true_labels=[0, 1, 2, 3]
+    )
     # print train_images
     is_training = tf.placeholder('bool', [], name='is_training')
     images, expand_images, labels = tf.cond(is_training,
@@ -127,12 +148,12 @@ def main(_):
         images,
         expand_images,
         phase_names=['NC', 'ART', 'PV'],
-        num_classes=net_config.OUTPUT_NODE,
+        num_classes=5,
         is_training=True,
         )
     print labels
     save_model_path = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiPhaseExpand/models'
-    train(is_training, logits, images, expand_images, labels, save_model_path=save_model_path)
+    train(is_training, logits, images, expand_images, labels, save_model_path=save_model_path, step_width=50)
 
 
 if __name__ == '__main__':

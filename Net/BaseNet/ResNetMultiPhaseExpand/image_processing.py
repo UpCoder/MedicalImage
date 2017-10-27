@@ -41,6 +41,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import numpy as np
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -145,14 +146,14 @@ def distort_color(image, thread_id=0, scope=None):
     with tf.op_scope([image], scope, 'distort_color'):
         color_ordering = thread_id % 2
 
-        if color_ordering == 0:
+        # if color_ordering == 0:
             # image = tf.image.random_brightness(image, max_delta=32. / 255.)
             # image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
             # image = tf.image.random_hue(image, max_delta=0.2)
-            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
-        elif color_ordering == 1:
+            # image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        # elif color_ordering == 1:
             # image = tf.image.random_brightness(image, max_delta=32. / 255.)
-            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+            # image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
             # image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
             # image = tf.image.random_hue(image, max_delta=0.2)
 
@@ -203,6 +204,10 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
 
         # Randomly flip the image horizontally.
         distorted_image = tf.image.random_flip_left_right(distorted_image)
+
+        # rotate image
+        rotate_num = np.random.randint(0, 4)
+        distorted_image = tf.image.rot90(distorted_image, rotate_num)
 
         # Randomly distort the colors.
         distorted_image = distort_color(distorted_image, thread_id)
@@ -264,7 +269,7 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_size=128):
     if train:
         image = distort_image(image, height, width, bbox, thread_id)
     else:
-        image = eval_image(image, height, width)
+        image = distort_image(image, height, width, bbox, thread_id)
 
     # Finally, rescale to [-1,1] instead of [0, 1)
     image = tf.subtract(image, 0.5)

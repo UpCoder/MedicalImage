@@ -1,5 +1,4 @@
-import skimage.io  # bug. need to import this before tensorflow
-import skimage.transform  # bug. need to import this before tensorflow
+# -*- coding=utf-8 -*-
 from resnet_val import val
 import tensorflow as tf
 import time
@@ -77,7 +76,7 @@ def distorted_inputs_unit(
     return images, expand_images, tf.reshape(batch_label, [FLAGS.batch_size])
 
 parent_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_pickup'
-def generate_paths(dir_name, state):
+def generate_paths(dir_name, state, target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]):
     def findSubStr(str, substr, i):
         count = 0
         while i > 0:
@@ -95,19 +94,19 @@ def generate_paths(dir_name, state):
     cur_dir = os.path.join(dir_name, state)
     names = os.listdir(cur_dir)
     for name in names:
-        # indexs_before = findSubStr(name, '_', 3)
-        # indexs_after = findSubStr(name, '_', 4)
-        # slice_id = int(name[indexs_before+1: indexs_after])
-        # if slice_id != 0:
-        #     continue
+        target_label = int(name[-1])
+        if target_label not in target_labels:
+            # 不是我们训练的目标
+            continue
+        labels.append(true_labels[target_labels.index(target_label)])
         cur_path = os.path.join(cur_dir, name)
         roi_paths.append(os.path.join(cur_path, 'roi.png'))
         roi_expand_paths.append(os.path.join(cur_path, 'roi_expand.png'))
-        labels.append(int(name[-1]))
+
     return roi_paths, roi_expand_paths, labels
 
-def distorted_inputs():
-    vals_output = generate_paths(parent_dir, 'val')
+def distorted_inputs(target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]):
+    vals_output = generate_paths(parent_dir, 'val', target_labels, true_labels)
     return distorted_inputs_unit(
                vals_output[0],
                vals_output[1],
@@ -118,18 +117,18 @@ def distorted_inputs():
 
 
 def main(_):
-    images, expand_images, labels = distorted_inputs()
-    print images
-
+    images, expand_images, labels = distorted_inputs(
+        target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]
+    )
     is_training = tf.placeholder('bool', [], name='is_training')
     logits = inference_small(
         images,
         expand_images,
         phase_names=['NC', 'ART', 'PV'],
-        num_classes=net_config.OUTPUT_NODE,
+        num_classes=5,
         is_training=True,
         )
-    roi_outputs = generate_paths(parent_dir, 'val')
+    roi_outputs = generate_paths(parent_dir, 'val', target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4])
     val(is_training, logits, images, labels, k=1, roi_paths=roi_outputs[0])
 
 

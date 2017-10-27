@@ -10,7 +10,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', '/tmp/resnet_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_string('load_model_path', '/home/give/PycharmProjects/StomachCanner/classification/Net/ResNet/models/patch_single_connected',
+tf.app.flags.DEFINE_string('load_model_path', './models',
                            '''the model reload path''')
 tf.app.flags.DEFINE_string('save_model_path', './models', 'the saving path of the model')
 tf.app.flags.DEFINE_string('log_dir', './log/train',
@@ -44,7 +44,7 @@ def calculate_accuracy(logits, labels, arg_index=1):
         tf.summary.scalar(scope+'/accuracy', accuracy)
     return accuracy
 
-def train(is_training, logits, images, expand_images, labels, save_model_path=None):
+def train(is_training, logits, images, expand_images, labels, save_model_path=None, step_width=100):
     global_step = tf.get_variable('global_step', [],
                                   initializer=tf.constant_initializer(0),
                                   trainable=False)
@@ -56,7 +56,8 @@ def train(is_training, logits, images, expand_images, labels, save_model_path=No
     print 'predictions shape is ', predictions
     print 'label is ', labels
     top1_error = top_k_error(predictions, labels, 1)
-    labels_onehot = tf.one_hot(labels, 5)
+    labels_onehot = tf.one_hot(labels, logits.get_shape().as_list()[-1])
+    print 'output node is ', logits.get_shape().as_list()[-1]
     accuracy_tensor = calculate_accuracy(predictions, labels_onehot)
 
     # loss_avg
@@ -101,9 +102,9 @@ def train(is_training, logits, images, expand_images, labels, save_model_path=No
     tf.train.start_queue_runners(sess=sess)
 
     summary_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
-    val_summary_writer = tf.summary.FileWriter(FLAGS.log_val_dir, sess.graph)
+    # val_summary_writer = tf.summary.FileWriter(FLAGS.log_val_dir, sess.graph)
     if FLAGS.resume:
-        latest = tf.train.latest_checkpoint('/home/give/PycharmProjects/StomachCanner/classification/Net/ResNet/models/instance/5500.0/')
+        latest = tf.train.latest_checkpoint(FLAGS.load_model_path)
         if not latest:
             print "No checkpoint to continue from in", FLAGS.train_dir
             sys.exit(1)
@@ -141,7 +142,7 @@ def train(is_training, logits, images, expand_images, labels, save_model_path=No
             summary_writer.add_summary(summary_str, step)
 
         # Save the model checkpoint periodically.
-        if step > 1 and step % 100 == 0:
+        if step > 1 and step % step_width == 0:
             checkpoint_path = os.path.join(save_model_path, 'model.ckpt')
             saver.save(sess, checkpoint_path, global_step=global_step)
             save_dir = os.path.join(save_model_path, str(step))
@@ -154,7 +155,7 @@ def train(is_training, logits, images, expand_images, labels, save_model_path=No
                     os.path.join(save_dir, os.path.basename(filename))
                 )
         # Run validation periodically
-        if step > 1 and step % 100 == 0:
+        if step > 1 and step % step_width == 0:
             _, top1_error_value, summary_value, accuracy_value, labels_values, predictions_values = sess.run([val_op, top1_error, summary_op, accuracy_tensor, labels, predictions], { is_training: False })
             predictions_values = np.argmax(predictions_values, axis=1)
             # accuracy = eval_accuracy(predictions_values, labels_values)
@@ -165,4 +166,4 @@ def train(is_training, logits, images, expand_images, labels, save_model_path=No
             )
             print('Validation top1 error %.2f, accuracy value %f'
                   % (top1_error_value, accuracy_value))
-            val_summary_writer.add_summary(summary_value, step)
+            # val_summary_writer.add_summary(summary_value, step)
