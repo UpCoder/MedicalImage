@@ -40,6 +40,7 @@ def distorted_inputs_unit(
     images_and_labels = []
     for thread_id in range(num_process_threads):
         image_buffer = tf.read_file(filename)
+
         bbox = []
         image = image_preprocessing(
             image_buffer,
@@ -76,7 +77,7 @@ def distorted_inputs_unit(
     return images, expand_images, tf.reshape(batch_label, [FLAGS.batch_size])
 
 
-parent_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_pickup'
+parent_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/ROI'
 def generate_paths(dir_name, state, target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]):
     '''
     返回dirname中的所有病灶图像的路径
@@ -148,12 +149,12 @@ def main(_):
         images,
         expand_images,
         phase_names=['NC', 'ART', 'PV'],
-        num_classes=5,
+        num_classes=4,
         is_training=True,
         )
     print labels
     save_model_path = '/home/give/PycharmProjects/MedicalImage/Net/BaseNet/ResNetMultiPhaseExpand/models'
-    train(is_training, logits, images, expand_images, labels, save_model_path=save_model_path, step_width=50)
+    train(is_training, logits, images, expand_images, labels, save_model_path=save_model_path, step_width=20)
 
 
 if __name__ == '__main__':

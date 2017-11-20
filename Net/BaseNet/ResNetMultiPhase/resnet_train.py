@@ -156,9 +156,7 @@ def train(is_training, logits, images, expand_images, labels, save_model_path=No
                 )
         # Run validation periodically
         if step > 1 and step % step_width == 0:
-            _, top1_error_value, summary_value, accuracy_value, labels_values, predictions_values = sess.run(
-                [val_op, top1_error, summary_op, accuracy_tensor, labels, predictions],
-                { is_training: False })
+            _, top1_error_value, summary_value, accuracy_value, labels_values, predictions_values = sess.run([val_op, top1_error, summary_op, accuracy_tensor, labels, predictions], { is_training: False })
             predictions_values = np.argmax(predictions_values, axis=1)
             # accuracy = eval_accuracy(predictions_values, labels_values)
             calculate_acc_error(

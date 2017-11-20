@@ -128,7 +128,7 @@ def train(is_training, logits, images, expand_images, labels, save_model_path=No
 
         assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-        if step % 5 == 0:
+        if step % step_width == 0:
             top1_error_value, accuracy_value, labels_values, predictions_values = sess.run([top1_error, accuracy_tensor, labels, predictions], feed_dict={is_training: True})
             predictions_values = np.argmax(predictions_values, axis=1)
             examples_per_sec = FLAGS.batch_size / float(duration)

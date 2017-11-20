@@ -75,7 +75,7 @@ def distorted_inputs_unit(
     expand_images = tf.reshape(expand_images, shape=[FLAGS.batch_size, roi_expand_size, roi_expand_size, 3])
     return images, expand_images, tf.reshape(batch_label, [FLAGS.batch_size])
 
-parent_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/ROI'
+parent_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/ROI_pickup'
 def generate_paths(dir_name, state, target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]):
     def findSubStr(str, substr, i):
         count = 0
@@ -118,14 +118,14 @@ def distorted_inputs(target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4])
 
 def main(_):
     images, expand_images, labels = distorted_inputs(
-        target_labels=[0, 1, 2, 3], true_labels=[0, 1, 2, 3]
+        target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4]
     )
     is_training = tf.placeholder('bool', [], name='is_training')
     logits = inference_small(
         images,
         expand_images,
         phase_names=['NC', 'ART', 'PV'],
-        num_classes=4,
+        num_classes=5,
         is_training=True,
         )
     roi_outputs = generate_paths(parent_dir, 'val', target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4])

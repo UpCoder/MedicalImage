@@ -205,7 +205,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
 
         # Randomly flip the image horizontally.
         distorted_image = tf.image.random_flip_left_right(distorted_image)
-        distorted_image = tf.image.random_flip_up_down(distorted_image)
+
         # rotate image
         rotate_num = np.random.randint(0, 4)
         distorted_image = tf.image.rot90(distorted_image, rotate_num)

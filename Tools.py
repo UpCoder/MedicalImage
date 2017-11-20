@@ -52,9 +52,13 @@ def read_dicom_series(dir_name):
 
 
 # 读取mhd文件
-def read_mhd_image(file_path):
+def read_mhd_image(file_path, rejust=False):
     header = itk.ReadImage(file_path)
-    image = itk.GetArrayFromImage(header)
+    image = np.array(itk.GetArrayFromImage(header))
+    if rejust:
+        image[image < -70] = -70
+        image[image > 180] = 180
+        image = image + 70
     return np.array(image)
 
 
@@ -122,11 +126,14 @@ def save_image_with_mask(image_arr, mask_image, save_path):
     ROI_Image = Image.fromarray(np.asarray(ROI, np.uint8))
 
     for index, y in enumerate(ys):
-        image_draw.point([xs[index], y], fill=(255, 0, 0))
-    image.save(save_path)
-    ROI_Image.save(os.path.join(os.path.dirname(save_path), os.path.basename(save_path).split('.')[0]+'_ROI.jpg'))
-    del image, ROI_Image
-    gc.collect()
+        image_draw.point([xs[index], y], fill=(255, 0, 0, 128))
+    if save_path is None:
+        image.show()
+    else:
+        image.save(save_path)
+        ROI_Image.save(os.path.join(os.path.dirname(save_path), os.path.basename(save_path).split('.')[0]+'_ROI.jpg'))
+        del image, ROI_Image
+        gc.collect()
 # 获取单位方向的坐标，
 # 比如dim=2，则返回的数组就是[[-1, -1],...[1, 1]]
 def get_direction_index(dim=3, cur_dir=[]):
@@ -264,6 +271,22 @@ def get_distribution_label(labels):
             my_dict[label] = 0
     return my_dict
 
+def compress22dim(image):
+    shape = list(np.shape(image))
+    if len(shape) == 3:
+        return np.squeeze(image)
+    else:
+        return image
+def shuffle_array(paths):
+    '''
+    将一个数组打乱
+    :param paths: 数组
+    :return: 打乱之后的数组
+    '''
+    paths = np.array(paths)
+    indexs = range(len(paths))
+    np.random.shuffle(indexs)
+    return paths[indexs]
 
 #　将数据打乱
 def shuffle_image_label(images, labels):
@@ -278,8 +301,30 @@ def shuffle_image_label(images, labels):
     for cur_index in random_index:
         new_images.append(images[cur_index])
     return new_images, labels
+def resize_image(image, size):
+    image = Image.fromarray(np.asanyarray(image, np.uint8))
+    return image.resize((size, size))
+def get_boundingbox(mask_image):
+    '''
+    返回mask生成的bounding box
+    :param mask_image:mask 文件
+    :return:[xmin, xmax, ymin, ymax]
+    '''
+    xs, ys = np.where(mask_image == 1)
+    return [
+        np.min(xs),
+        np.max(xs),
+        np.min(ys),
+        np.max(ys)
+    ]
 
 
+def cal_liver_average(mhd_image, liver_mask_image):
+    liver_mask_image[liver_mask_image == 1] = 2
+    mhd_image_copy = copy.copy(mhd_image)
+    liver_mask_image[mhd_image_copy < 30] = 0
+    # liver_mask_image[mhd_image_copy]
+    return (1.0 * np.sum(mhd_image[liver_mask_image == 2])) / (1.0 * np.sum(liver_mask_image == 2))
 # 将数据按照指定的方式排序
 def changed_shape(image, shape):
     new_image = np.zeros(
@@ -339,7 +384,7 @@ def mark_outer_zero(image, mask_image):
 
 # 显示一幅图像
 def show_image(image_arr, title=None):
-    image = Image.fromarray(image_arr)
+    image = Image.fromarray(np.asarray(image_arr, np.uint8))
     image.show(title=title)
 
 
@@ -456,6 +501,24 @@ def get_game_evaluate(logits, labels, argmax=None):
     precision = calculate_precision(logits=logits, labels=labels)
     f1_score = (2*precision*recall) / (precision + recall)
     return recall, precision, f1_score
+
+
+def convert2depthlaster(mask_image):
+    '''
+    将数组调整为ｄｅｐｔｈ在第三个通道
+    :param mask_image: depth width height
+    :return:  width height depth
+    '''
+    mask_image = np.array(mask_image)
+    shape0 = list(np.shape(mask_image[0]))
+    for i in range(len(mask_image)):
+        if shape0 != list(np.shape(mask_image[i])):
+            print 'The size of each channal is not equal.'
+            return mask_image
+    res = np.zeros([shape0[0], shape0[1], len(mask_image)])
+    for i in range(len(mask_image)):
+        res[:, :, i] = mask_image[i, :, :]
+    return res
 
 if __name__ == '__main__':
     linear_enhancement()

@@ -1,7 +1,6 @@
 from resnet import *
 import tensorflow as tf
 from Tools import calculate_acc_error
-import shutil
 
 MOMENTUM = 0.9
 
@@ -88,16 +87,9 @@ def val(is_training, logits, images, labels, k=1, is_testing=False, roi_paths=No
         print('accuracy value %f' % (1 - error_rate))
         if roi_paths is not None:
             print 'Error files are : '
-
             for index in error_index:
-                # print os.path.dirname(roi_paths[index]), '->', os.path.join('/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/ROI/delete_val_0', os.path.basename(os.path.dirname(roi_paths[index])))
-                # shutil.move(
-                #     os.path.dirname(roi_paths[index]),
-                #     os.path.join('/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/ROI/delete_val_0', os.path.basename(os.path.dirname(roi_paths[index])))
-                # )
                 print roi_paths[index], np.argmax(logits_value[index])
     if is_testing:
         prediction_flags = np.argmax(logits_value, axis=1)
-
         return prediction_flags
 
