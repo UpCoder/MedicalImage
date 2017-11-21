@@ -126,7 +126,7 @@ def main(_):
         expand_images,
         phase_names=['NC', 'ART', 'PV'],
         num_classes=4,
-        is_training=True,
+        is_training=False,
         )
     roi_outputs = generate_paths(parent_dir, 'val', target_labels=[0, 1, 2, 3, 4], true_labels=[0, 1, 2, 3, 4])
     val(is_training, logits, images, labels, k=1, roi_paths=roi_outputs[0])

@@ -13,7 +13,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', '/tmp/resnet_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_string('load_model_path', './models',
+tf.app.flags.DEFINE_string('load_model_path', './models/DIY',
                            '''the model reload path''')
 tf.app.flags.DEFINE_string('save_model_path', './models', 'the saving path of the model')
 tf.app.flags.DEFINE_string('log_dir', './log/train',
@@ -22,7 +22,7 @@ tf.app.flags.DEFINE_string('log_val_dir', './log/val',
                            """The Summury output directory""")
 tf.app.flags.DEFINE_float('learning_rate', 0.01, "learning rate.")
 tf.app.flags.DEFINE_integer('max_steps', 10000, "max steps")
-tf.app.flags.DEFINE_boolean('resume', False,
+tf.app.flags.DEFINE_boolean('resume', True,
                             'resume from latest saved state')
 tf.app.flags.DEFINE_boolean('minimal_summaries', True,
                             'produce fewer summaries to save HD space')
@@ -66,7 +66,7 @@ class DataSet:
             res[i, :, :, :] = res[i, :, :, :] * 2.0
         return res
     @staticmethod
-    def generate_paths(dir_name, state, target_labels=[0, 1, 2, 3]):
+    def generate_paths(dir_name, state, target_labels=[0, 1, 2, 3], shuffle=True):
         '''
         返回dirname中的所有病灶图像的路径
         :param dir_name:  父文件夹的路径
@@ -85,7 +85,8 @@ class DataSet:
             type_names = os.listdir(type_dir)
             roi_paths.extend([os.path.join(type_dir, name) for name in type_names])
             labels.extend([target_label] * len(type_names))
-        roi_paths, labels = shuffle_image_label(roi_paths, labels)
+        if shuffle:
+            roi_paths, labels = shuffle_image_label(roi_paths, labels)
         return roi_paths, roi_paths, labels
 
     def __init__(self, data_dir, state):
@@ -223,7 +224,16 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
 
         assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-        if step % step_width == 0:
+        if (step - 1) % step_width == 0:
+            train_labels = np.array(train_labels)
+            train_roi_batch_images = np.array(train_roi_batch_images)
+            train_expand_roi_batch_images = np.array(train_expand_roi_batch_images)
+
+            target_label = 0
+            train_roi_batch_images = train_roi_batch_images[train_labels == target_label]
+            train_expand_roi_batch_images = train_expand_roi_batch_images[train_labels == target_label]
+            train_labels = train_labels[train_labels == target_label]
+
             top1_error_value, accuracy_value, labels_values, predictions_values = sess.run([top1_error, accuracy_tensor, labels_tensor, predictions], feed_dict={
                 images_tensor: train_roi_batch_images,
                 expand_images_tensor: train_expand_roi_batch_images,
@@ -243,16 +253,16 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
         # Save the model checkpoint periodically.
         if step > 1 and step % step_width == 0:
             checkpoint_path = os.path.join(save_model_path, 'model.ckpt')
-            saver.save(sess, checkpoint_path, global_step=global_step)
-            save_dir = os.path.join(save_model_path, str(step))
-            if not os.path.exists(save_dir):
-                os.mkdir(save_dir)
-            filenames = glob(os.path.join(save_model_path, '*-'+str(int(step + 1))+'.*'))
-            for filename in filenames:
-                shutil.copy(
-                    filename,
-                    os.path.join(save_dir, os.path.basename(filename))
-                )
+            # saver.save(sess, checkpoint_path, global_step=global_step)
+            # save_dir = os.path.join(save_model_path, str(step))
+            # if not os.path.exists(save_dir):
+            #     os.mkdir(save_dir)
+            # filenames = glob(os.path.join(save_model_path, '*-'+str(int(step + 1))+'.*'))
+            # for filename in filenames:
+            #     shutil.copy(
+            #         filename,
+            #         os.path.join(save_dir, os.path.basename(filename))
+            #     )
         # Run validation periodically
         if step > 1 and step % step_width == 0:
             val_roi_batch_images, val_expand_roi_batch_images, val_labels = val_batchdata.next()
