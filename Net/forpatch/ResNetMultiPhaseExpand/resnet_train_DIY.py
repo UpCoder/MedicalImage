@@ -4,6 +4,7 @@ import tensorflow as tf
 from Tools import changed_shape, calculate_acc_error, acc_binary_acc, shuffle_image_label
 from glob import glob
 import shutil
+import scipy.io as scio
 from Config import Config as net_config
 from PIL import Image
 
@@ -13,7 +14,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', '/tmp/resnet_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_string('load_model_path', './models/DIY',
+tf.app.flags.DEFINE_string('load_model_path', './models/DIY/patches_50000',
                            '''the model reload path''')
 tf.app.flags.DEFINE_string('save_model_path', './models', 'the saving path of the model')
 tf.app.flags.DEFINE_string('log_dir', './log/train',
@@ -22,11 +23,15 @@ tf.app.flags.DEFINE_string('log_val_dir', './log/val',
                            """The Summury output directory""")
 tf.app.flags.DEFINE_float('learning_rate', 0.01, "learning rate.")
 tf.app.flags.DEFINE_integer('max_steps', 10000, "max steps")
-tf.app.flags.DEFINE_boolean('resume', True,
+tf.app.flags.DEFINE_boolean('resume', False,
                             'resume from latest saved state')
 tf.app.flags.DEFINE_boolean('minimal_summaries', True,
                             'produce fewer summaries to save HD space')
-
+def load_patch(patch_path):
+    if patch_path.endswith('.jpg'):
+        return Image.open(patch_path)
+    if patch_path.endswith('.npy'):
+        return np.load(patch_path)
 
 def top_k_error(predictions, labels, k):
     batch_size = float(FLAGS.batch_size) #tf.shape(predictions)[0]
@@ -46,9 +51,24 @@ def calculate_accuracy(logits, labels, arg_index=1):
         accuracy = tf.reduce_mean(correct)
         tf.summary.scalar(scope+'/accuracy', accuracy)
     return accuracy
+
 class DataSet:
     @staticmethod
-    def resize_images(images, size):
+    def load_liver_density(data_dir='/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand'):
+        mat_paths = glob(os.path.join(data_dir, 'liver_density*.mat'))
+        total_liver_density = {}
+        for mat_path in mat_paths:
+            liver_density = scio.loadmat(mat_path)
+            for (key, value) in liver_density.items():
+                if key.startswith('__'):
+                    continue
+                if key in total_liver_density.keys():
+                    print 'Error', key
+                total_liver_density[key] = np.array(value).squeeze()
+        return total_liver_density
+
+    @staticmethod
+    def resize_images(images, size, rescale=True):
         res = np.zeros(
             [
                 len(images),
@@ -61,9 +81,12 @@ class DataSet:
         for i in range(len(images)):
             img = Image.fromarray(np.asarray(images[i], np.uint8))
             img = img.resize([size, size])
-            res[i, :, :, :] = np.asarray(img, np.float32) / 255.0
-            res[i, :, :, :] = res[i, :, :, :] - 0.5
-            res[i, :, :, :] = res[i, :, :, :] * 2.0
+            if rescale:
+                res[i, :, :, :] = np.asarray(img, np.float32) / 255.0
+                res[i, :, :, :] = res[i, :, :, :] - 0.5
+                res[i, :, :, :] = res[i, :, :, :] * 2.0
+            else:
+                res[i, :, :, :] = np.asarray(img, np.float32)
         return res
     @staticmethod
     def generate_paths(dir_name, state, target_labels=[0, 1, 2, 3], shuffle=True):
@@ -89,7 +112,15 @@ class DataSet:
             roi_paths, labels = shuffle_image_label(roi_paths, labels)
         return roi_paths, roi_paths, labels
 
-    def __init__(self, data_dir, state):
+    def __init__(self, data_dir, state, pre_load=False, divied_liver=False, rescale=True):
+        '''
+        DataSet的初始化函数
+        :param data_dir: 数据的文件夹
+        :param state:
+        :param pre_load:
+        :param divied_liver:
+        :param rescale:
+        '''
         self.roi_paths, self.expand_roi_path, self.labels = DataSet.generate_paths(
             data_dir,
             state
@@ -97,6 +128,9 @@ class DataSet:
         self.state = state
         self.epoch_num = 0
         self.start_index = 0
+        self.liver_density = DataSet.load_liver_density()
+        self.divied_liver = divied_liver
+        self.rescale = rescale
 
     def get_next_batch(self, batch_size):
         while True:
@@ -116,22 +150,38 @@ class DataSet:
                 cur_labels.extend(self.labels[:end_index - len(self.roi_paths)])
                 self.start_index = end_index - len(self.roi_paths)
                 print 'state: ', self.state, ' epoch: ', self.epoch_num
+
             else:
                 cur_roi_paths.extend(self.roi_paths[self.start_index: end_index])
                 cur_expand_roi_paths.extend(self.expand_roi_path[self.start_index: end_index])
                 cur_labels.extend(self.labels[self.start_index: end_index])
                 self.start_index = end_index
-            cur_roi_images = [np.asarray(Image.open(path)) for path in cur_roi_paths]
-            cur_expand_roi_images = [np.asarray(Image.open(path)) for path in cur_expand_roi_paths]
-            cur_roi_images = DataSet.resize_images(cur_roi_images, net_config.ROI_SIZE_W)
-            cur_expand_roi_images = DataSet.resize_images(cur_expand_roi_images, net_config.EXPAND_SIZE_W)
+            cur_liver_densitys = [self.liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for path in cur_roi_paths]
+            cur_roi_images = [np.asarray(load_patch(path)) for path in cur_roi_paths]
+            cur_expand_roi_images = [np.asarray(load_patch(path)) for path in cur_expand_roi_paths]
+            cur_roi_images = DataSet.resize_images(cur_roi_images, net_config.ROI_SIZE_W, self.rescale)
+            cur_expand_roi_images = DataSet.resize_images(cur_expand_roi_images, net_config.EXPAND_SIZE_W, self.rescale)
             # print np.shape(cur_roi_images)
+            if self.divied_liver:
+                for i in range(len(cur_roi_images)):
+                    for j in range(3):
+                        cur_roi_images[i, :, :, j] = cur_roi_images[i, :, :, j] / cur_liver_densitys[i][j]
+                        cur_expand_roi_images[i, :, :, j] = cur_expand_roi_images[i, :, :, j] / cur_liver_densitys[i][j]
+
             yield cur_roi_images, cur_expand_roi_images, cur_labels
+
+# if __name__ == '__main__':
+#     train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases', 'train', rescale=False, divied_liver=True)
+#     train_batchdata = train_dataset.get_next_batch(net_config.BATCH_SIZE)
+#     train_roi_batch_images, train_expand_roi_batch_images, train_labels = train_batchdata.next()
+
 
 def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model_path=None, step_width=100):
 
-    train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases', 'train')
-    val_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases', 'val')
+    train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/balance', 'train',
+                            rescale=True, divied_liver=False)
+    val_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/balance', 'val',
+                          rescale=True, divied_liver=False)
 
     train_batchdata = train_dataset.get_next_batch(net_config.BATCH_SIZE)
     val_batchdata = val_dataset.get_next_batch(net_config.BATCH_SIZE)
@@ -193,7 +243,7 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
     tf.train.start_queue_runners(sess=sess)
 
     summary_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
-    # val_summary_writer = tf.summary.FileWriter(FLAGS.log_val_dir, sess.graph)
+    val_summary_writer = tf.summary.FileWriter(FLAGS.log_val_dir, sess.graph)
     if FLAGS.resume:
         latest = tf.train.latest_checkpoint(FLAGS.load_model_path)
         if not latest:
@@ -225,15 +275,6 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
         assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
         if (step - 1) % step_width == 0:
-            train_labels = np.array(train_labels)
-            train_roi_batch_images = np.array(train_roi_batch_images)
-            train_expand_roi_batch_images = np.array(train_expand_roi_batch_images)
-
-            target_label = 0
-            train_roi_batch_images = train_roi_batch_images[train_labels == target_label]
-            train_expand_roi_batch_images = train_expand_roi_batch_images[train_labels == target_label]
-            train_labels = train_labels[train_labels == target_label]
-
             top1_error_value, accuracy_value, labels_values, predictions_values = sess.run([top1_error, accuracy_tensor, labels_tensor, predictions], feed_dict={
                 images_tensor: train_roi_batch_images,
                 expand_images_tensor: train_expand_roi_batch_images,
@@ -253,16 +294,16 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
         # Save the model checkpoint periodically.
         if step > 1 and step % step_width == 0:
             checkpoint_path = os.path.join(save_model_path, 'model.ckpt')
-            # saver.save(sess, checkpoint_path, global_step=global_step)
-            # save_dir = os.path.join(save_model_path, str(step))
-            # if not os.path.exists(save_dir):
-            #     os.mkdir(save_dir)
-            # filenames = glob(os.path.join(save_model_path, '*-'+str(int(step + 1))+'.*'))
-            # for filename in filenames:
-            #     shutil.copy(
-            #         filename,
-            #         os.path.join(save_dir, os.path.basename(filename))
-            #     )
+            saver.save(sess, checkpoint_path, global_step=global_step)
+            save_dir = os.path.join(save_model_path, str(step))
+            if not os.path.exists(save_dir):
+                os.mkdir(save_dir)
+            filenames = glob(os.path.join(save_model_path, '*-'+str(int(step + 1))+'.*'))
+            for filename in filenames:
+                shutil.copy(
+                    filename,
+                    os.path.join(save_dir, os.path.basename(filename))
+                )
         # Run validation periodically
         if step > 1 and step % step_width == 0:
             val_roi_batch_images, val_expand_roi_batch_images, val_labels = val_batchdata.next()
@@ -282,4 +323,4 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
             )
             print('Validation top1 error %.2f, accuracy value %f'
                   % (top1_error_value, accuracy_value))
-            # val_summary_writer.add_summary(summary_value, step)
+            val_summary_writer.add_summary(summary_value, step)

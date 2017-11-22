@@ -23,11 +23,18 @@ class SVM:
             return acc
         max_acc = 0.0
         max_predicted = None
+        max_acc_train = 0.0
+        target_c = None
+        target_g = None
         for param_c in range(-20, 20, 1):
             for param_g in range(-20, 20, 1):
                 clf = SVC(C=pow(2, param_c), gamma=pow(2, param_g))
                 clf.fit(train_data, train_label)
                 predicts = clf.predict(test_data)
+                predicts_train = clf.predict(train_data)
+                acc_train = accuracy_score(train_label, predicts_train)
+                if acc_train > max_acc_train:
+                    max_acc_train = acc_train
                 acc = None
                 if test_label is not None:
                     acc = accuracy_score(test_label, predicts)
@@ -35,8 +42,10 @@ class SVM:
                     if acc > max_acc:
                         max_predicted = predicts
                         max_acc = acc
-            print max_acc
-        print 'max accuracy is ', max_acc
+                        target_c = pow(2, param_c)
+                        target_g = pow(2, param_g)
+                    print 'training accuracy is ', acc_train, 'valication accuracy is ', acc
+        print 'training max accuracy is ', max_acc_train, 'valication max accuracy is ', max_acc
         return max_predicted
 
 class LinearSVM:
@@ -63,4 +72,4 @@ if __name__ == '__main__':
     train_labels = data['train_labels']
     val_labels = data['val_labels']
     print np.shape(train_features), np.shape(train_labels)
-    SVM.do(train_features, train_labels, val_features, val_labels)
+    SVM.do(train_features, train_labels, val_features, val_labels, adjust_parameters=True)

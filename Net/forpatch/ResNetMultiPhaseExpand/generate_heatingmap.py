@@ -10,10 +10,10 @@ from Config import Config as net_config
 from resnet import inference_small
 from Net.forpatch.ResNetMultiPhaseExpand.resnet_train_DIY import DataSet
 phasenames=['NC', 'ART', 'PV']
+mhd_adjust = False
 
 
-
-model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY'
+model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/patches_50000/2000.0'
 global_step = tf.get_variable('global_step', [],
                               initializer=tf.constant_initializer(0),
                               trainable=False)
@@ -106,7 +106,7 @@ def extract_patch(dir_name, suffix_name, patch_size, patch_step=1):
             for phasename in phasenames:
                 image_path = glob(os.path.join(dir_name, name, phasename + '_Image*.mhd'))[0]
                 mask_path = os.path.join(dir_name, name, phasename + '_Registration.mhd')
-                mhd_image = read_mhd_image(image_path, rejust=True)
+                mhd_image = read_mhd_image(image_path, rejust=mhd_adjust)
                 mhd_image = np.squeeze(mhd_image)
                 # show_image(mhd_image)
                 mask_image = read_mhd_image(mask_path)
@@ -203,10 +203,11 @@ if __name__ == '__main__':
     #     '0',
     #     9
     # )
-    for type in [0, 1, 2, 3]:
-        generate_heatingmaps(
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val',
-            type,
-            9,
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/val'
-        )
+    for subclass in ['train', 'val']:
+        for type in [0, 1, 2, 3]:
+            generate_heatingmaps(
+                '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/' + subclass,
+                type,
+                9,
+                '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/' + subclass
+            )

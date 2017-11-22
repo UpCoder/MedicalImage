@@ -24,3 +24,4 @@ class Config:
         2: [255, 0, 0],
         3: [0, 255, 255]
     }
+    divied_liver=True

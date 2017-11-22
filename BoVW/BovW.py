@@ -7,14 +7,22 @@ from glob import glob
 from Tools import read_mhd_image, get_boundingbox, convert2depthlaster
 import scipy.io as scio
 phasenames=['NC', 'ART', 'PV']
+patch_size = 4
 
+
+def load_patch(patch_path):
+    if patch_path.endswith('.jpg'):
+        return Image.open(patch_path)
+    if patch_path.endswith('.npy'):
+        return np.load(patch_path)
 
 def generate_density_feature(data_dir):
     names = os.listdir(data_dir)
     features = []
     for name in names:
-        array = np.array(Image.open(os.path.join(data_dir, name))).flatten()
-        if len(array) != 192:
+
+        array = np.array(load_patch(os.path.join(data_dir, name))).flatten()
+        if len(array) != patch_size * patch_size * 3:
             continue
         features.append(array)
     # features = [np.array(Image.open(os.path.join(data_dir, name))).flatten() for name in names]
@@ -108,7 +116,7 @@ def generate_train_val_features(cluster_centroid_path):
         cur_patches = extract_patch(
                 '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train',
                 str(i),
-                patch_size=9,
+                patch_size=(patch_size + 1),
                 flatten=True
             )
         train_labels.extend([i] * len(cur_patches))
@@ -124,7 +132,7 @@ def generate_train_val_features(cluster_centroid_path):
         cur_patches = extract_patch(
                 '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val',
                 str(i),
-                patch_size=9,
+                patch_size=(patch_size + 1),
                 flatten=True
             )
         val_labels.extend([i] * len(cur_patches))
@@ -178,14 +186,14 @@ def generate_patches_representer(patches, cluster_centers):
 if __name__ == '__main__':
     # features = generate_density_feature_multidir(
     #     [
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/train/0',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/train/1',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/train/2',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/train/3',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/val/0',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/val/1',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/val/2',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases/val/3',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/0',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/1',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/2',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/3',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/0',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/1',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/2',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/3',
     #     ]
     # )
     # print np.shape(features)

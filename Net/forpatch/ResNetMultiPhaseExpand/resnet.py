@@ -101,12 +101,79 @@ def inference_small(x, x_expand,
     c['fc_units_out'] = num_classes
     c['num_blocks'] = num_blocks
     c['num_classes'] = num_classes
-    return inference_small_config_pre([x, x_expand], c, phase_names)
+    return inference_small_config_lstm([x, x_expand], c, phase_names)
 
+# ConvNet->reduce_mean->concat->FC
+def inference_small_config_lstm(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], ksize=[3, 3]):
+    c['bottleneck'] = False
+    c['stride'] = 1
+    CONV_OUT = []
+    CONV_OUT_index = 0
 
-    # ConvNet->reduce_mean->concat->FC
+    NUM_LAYERS = 2
+    for xs_index, xs in enumerate(xs_expand):
+        with tf.variable_scope(xs_names[xs_index]):
+            for index, phase_name in (enumerate(phase_names)):
+                c['ksize'] = ksize[xs_index]
+                x = xs[:, :, :, index]
+                x = tf.expand_dims(
+                    x,
+                    dim=3
+                )
+                with tf.variable_scope(phase_name):
+                    with tf.variable_scope('scale1'):
+                        c['conv_filters_out'] = 16
+                        c['block_filters_internal'] = 16
+                        c['stack_stride'] = 1
+                        x = conv(x, c)
+                        x = bn(x, c)
+                        x = activation(x)
+                        x = stack(x, c)
 
+                    with tf.variable_scope('scale2'):
+                        c['block_filters_internal'] = 32
+                        c['stack_stride'] = 2
+                        x = stack(x, c)
 
+                    with tf.variable_scope('scale3'):
+                        c['block_filters_internal'] = 64
+                        c['stack_stride'] = 2
+                        x = stack(x, c)
+                    # post-net
+                    x = tf.reduce_mean(x, reduction_indices=[1, 2], name="avg_pool")
+                    CONV_OUT.append(x)
+                    CONV_OUT_index += 1
+                    print CONV_OUT
+    HIDDEN_SIZE = CONV_OUT[0].get_shape().as_list()[1]
+    lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(HIDDEN_SIZE)
+    cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * NUM_LAYERS)
+    initial_state = cell.zero_state(xs_expand[0].get_shape().as_list()[0], tf.float32)
+    state = initial_state
+    outputs = []
+    with tf.variable_scope('RNN_LSTM'):
+        for time_step in range(len(CONV_OUT)):
+            if time_step > 0:
+                tf.get_variable_scope().reuse_variables()
+            print CONV_OUT[time_step]
+            print state
+            cell_output, state = cell(CONV_OUT[time_step], state)
+            outputs.append(cell_output)
+    LSTM_OUTPUT = None
+    for i in range(len(outputs)):
+        if LSTM_OUTPUT is None:
+            LSTM_OUTPUT = outputs[i]
+        else:
+            LSTM_OUTPUT = tf.concat([LSTM_OUTPUT, outputs[i]], axis=1)
+    # outputs = outputs[-1]   # 只需要最后的输出即可？
+    outputs = LSTM_OUTPUT
+    print 'final fc input is ', outputs
+    if c['num_classes'] != None:
+        print 'before fc layers, the dimension: ', outputs
+        with tf.variable_scope('fc'):
+            x = fc(outputs, c)
+    print 'x is ', x
+    return x
+# ConvNet->reduce_mean->concat->FC
 def inference_small_config_pre(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], ksize=[3, 3]):
     c['bottleneck'] = False
     c['stride'] = 1
@@ -154,9 +221,7 @@ def inference_small_config_pre(xs_expand, c, phase_names, xs_names=['ROI', 'EXPA
     return x
 
 
-    # ConvNet->reduce_mean->FC->concat->FC
-
-
+# ConvNet->reduce_mean->FC->concat->FC
 def inference_small_config(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], ksize=[3, 3]):
     c['bottleneck'] = False
     c['stride'] = 1
@@ -419,3 +484,17 @@ def _max_pool(x, ksize=3, stride=2):
                           ksize=[1, ksize, ksize, 1],
                           strides=[1, stride, stride, 1],
                           padding='SAME')
+if __name__ == '__main__':
+    roi_tensor = tf.placeholder(tf.float32,[30, 64, 64, 3])
+    expand_tensor = tf.placeholder(tf.float32, [30, 64, 64, 3])
+    c = Config()
+    c['is_training'] = tf.convert_to_tensor(False,
+                                            dtype='bool',
+                                            name='is_training')
+    num_blocks = 3  # 6n+2 total weight layers will be used.
+    use_bias = False  # defaults to using batch norm
+    c['use_bias'] = use_bias
+    c['fc_units_out'] = 4
+    c['num_blocks'] = num_blocks
+    c['num_classes'] = 4
+    inference_small_config_lstm([roi_tensor, expand_tensor], c, ['NC', 'ART', 'PV'])
