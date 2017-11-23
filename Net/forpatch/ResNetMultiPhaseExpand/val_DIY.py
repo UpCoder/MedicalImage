@@ -1,19 +1,17 @@
 # -*- coding=utf-8 -*-
-from resnet_train_DIY import train
 import tensorflow as tf
-import time
 import os
 import sys
-import re
+from load_liver_density import load_raw_liver_density
 import numpy as np
 from resnet import inference_small
-from image_processing import image_preprocessing
 from Net.forpatch.ResNetMultiPhaseExpand.Config import Config as net_config
 from Tools import shuffle_image_label, read_mhd_image, get_boundingbox, convert2depthlaster, calculate_acc_error
 from PIL import Image
 from glob import glob
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('batch_size', net_config.BATCH_SIZE, "batch size")
+
 def load_patch(patch_path, return_roi=False, parent_dir=None):
     if not return_roi:
         if patch_path.endswith('.jpg'):
@@ -105,7 +103,7 @@ def resize_images(images, size, rescale=True):
 def main(_):
     roi_images = tf.placeholder(
         shape=[
-            net_config.BATCH_SIZE,
+            None,
             net_config.ROI_SIZE_W,
             net_config.ROI_SIZE_H,
             net_config.IMAGE_CHANNEL
@@ -115,7 +113,7 @@ def main(_):
     )
     expand_roi_images = tf.placeholder(
         shape=[
-            net_config.BATCH_SIZE,
+            None,
             net_config.EXPAND_SIZE_W,
             net_config.EXPAND_SIZE_H,
             net_config.IMAGE_CHANNEL
@@ -123,14 +121,17 @@ def main(_):
         dtype=np.float32,
         name='expand_roi_input'
     )
+    batch_size_tensor = tf.placeholder(dtype=tf.int32, shape=[])
+    is_training_tensor = tf.placeholder(dtype=tf.bool, shape=[])
     logits = inference_small(
         roi_images,
         expand_roi_images,
         phase_names=['NC', 'ART', 'PV'],
         num_classes=4,
-        is_training=False,
+        is_training=is_training_tensor,
+        batch_size=batch_size_tensor
         )
-    model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/ROISlice/50000'
+    model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/LSTM/npy_divided_liver'
     predictions = tf.nn.softmax(logits)
     saver = tf.train.Saver(tf.all_variables())
     print predictions
@@ -148,7 +149,7 @@ def main(_):
     print "resume", latest
     saver.restore(sess, latest)
 
-    data_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/balance/train'
+    data_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy/val'
     labels = []
     paths = []
     for typeid in [0, 1, 2, 3]:
@@ -159,6 +160,7 @@ def main(_):
     paths, labels = shuffle_image_label(paths, labels)
     start_index = 0
     predicted_labels = []
+    liver_density = load_raw_liver_density()
     while True:
         if start_index >= len(paths):
             break
@@ -167,13 +169,22 @@ def main(_):
         cur_paths = paths[start_index: end_index]
         cur_roi_images = [np.asarray(load_patch(path)) for path in cur_paths]
         cur_expand_roi_images = [
-            np.asarray(load_patch(path, return_roi=True, parent_dir='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train')) for path in
+            np.asarray(load_patch(path, return_roi=False, parent_dir='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val')) for path in
             cur_paths]
-        cur_roi_images = resize_images(cur_roi_images, net_config.ROI_SIZE_W, True)
-        cur_expand_roi_images = resize_images(cur_expand_roi_images, net_config.EXPAND_SIZE_W, True)
+        cur_roi_images = resize_images(cur_roi_images, net_config.ROI_SIZE_W, False)
+        cur_expand_roi_images = resize_images(cur_expand_roi_images, net_config.EXPAND_SIZE_W, False)
+        cur_liver_densitys = [liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for
+                              path in cur_paths]
+        for i in range(len(cur_roi_images)):
+            for j in range(3):
+                cur_roi_images[i, :, :, j] = (1.0 * cur_roi_images[i, :, :, j]) / (1.0 * cur_liver_densitys[i][j])
+                cur_expand_roi_images[i, :, :, j] = (1.0 * cur_expand_roi_images[i, :, :, j]) / (
+                1.0 * cur_liver_densitys[i][j])
         predicted_batch_labels = sess.run(predicted_label_tensor, feed_dict={
             roi_images: cur_roi_images,
-            expand_roi_images: cur_expand_roi_images
+            expand_roi_images: cur_expand_roi_images,
+            is_training_tensor: False,
+            batch_size_tensor: len(cur_roi_images)
         })
         batch_labels = labels[start_index: end_index]
         predicted_labels.extend(predicted_batch_labels)

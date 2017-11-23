@@ -520,5 +520,34 @@ def convert2depthlaster(mask_image):
         res[:, :, i] = mask_image[i, :, :]
     return res
 
+def test_show_regression():
+    from glob import glob
+    '''
+    可视化不同的类型病灶ｒｅｇｒｅｓｓｉｏｎ之后的结果
+    :return:
+    '''
+    data_dir = '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train/1887735_2842841_0_0_3'
+    phasenames = ['NC', 'ART', 'PV']
+    mhd_images = []
+    for phasename in phasenames:
+        image_path = glob(os.path.join(data_dir, phasename + '_Image*.mhd'))[0]
+        mask_path = os.path.join(data_dir, phasename + '_Registration.mhd')
+        mhd_image = read_mhd_image(image_path, rejust=True)
+        mhd_image = np.squeeze(mhd_image)
+        mask_image = read_mhd_image(mask_path)
+        mask_image = np.squeeze(mask_image)
+        [xmin, xmax, ymin, ymax] = get_boundingbox(mask_image)
+        # xmin -= 15
+        # xmax += 15
+        # ymin -= 15
+        # ymax += 15
+        mask_image = mask_image[xmin: xmax, ymin: ymax]
+        mhd_image = mhd_image[xmin: xmax, ymin: ymax]
+        mhd_image[mask_image != 1] = 0
+        mhd_images.append(mhd_image)
+    mhd_images = convert2depthlaster(mhd_images)
+    img = Image.fromarray(np.asarray(mhd_images, np.uint8))
+    img.save('./HEM.jpg')
+    show_image(mhd_images)
 if __name__ == '__main__':
-    linear_enhancement()
+    test_show_regression()

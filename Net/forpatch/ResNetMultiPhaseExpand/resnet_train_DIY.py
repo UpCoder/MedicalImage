@@ -14,7 +14,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', '/tmp/resnet_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_string('load_model_path', '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/ROISlice/50000',
+tf.app.flags.DEFINE_string('load_model_path', '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/ROISlice/parallel/2000',
                            '''the model reload path''')
 tf.app.flags.DEFINE_string('save_model_path', './models', 'the saving path of the model')
 tf.app.flags.DEFINE_string('log_dir', './log/train',
@@ -23,7 +23,7 @@ tf.app.flags.DEFINE_string('log_val_dir', './log/val',
                            """The Summury output directory""")
 tf.app.flags.DEFINE_float('learning_rate', 0.01, "learning rate.")
 tf.app.flags.DEFINE_integer('max_steps', 10000, "max steps")
-tf.app.flags.DEFINE_boolean('resume', True,
+tf.app.flags.DEFINE_boolean('resume', False,
                             'resume from latest saved state')
 tf.app.flags.DEFINE_boolean('minimal_summaries', True,
                             'produce fewer summaries to save HD space')
@@ -211,10 +211,16 @@ class DataSet:
             data_dir,
             state
         )
+        if self.roi_paths[0].endswith('.npy'):
+            self.using_raw = True
+        else:
+            self.using_raw = False
         self.state = state
         self.epoch_num = 0
         self.start_index = 0
-        self.liver_density = DataSet.load_liver_density()
+        self.liver_density = DataSet.load_liver_density()   # 调整过窗宽窗位的肝脏平均密度
+        self.raw_liver_density = DataSet.load_raw_liver_density()   # 原始的像素值的平均密度
+        print self.raw_liver_density
         self.divied_liver = divied_liver
         self.rescale = rescale
         self.full_roi_path=full_roi_path
@@ -243,7 +249,10 @@ class DataSet:
                 cur_expand_roi_paths.extend(self.expand_roi_path[self.start_index: end_index])
                 cur_labels.extend(self.labels[self.start_index: end_index])
                 self.start_index = end_index
-            cur_liver_densitys = [self.liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for path in cur_roi_paths]
+            if self.using_raw:
+                cur_liver_densitys = [self.raw_liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for path in cur_roi_paths]
+            else:
+                cur_liver_densitys = [self.liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for path in cur_roi_paths]
             cur_roi_images = [np.asarray(load_patch(path)) for path in cur_roi_paths]
             cur_expand_roi_images = [np.asarray(load_patch(path, return_roi=self.expand_is_roi, parent_dir=self.full_roi_path)) for path in cur_expand_roi_paths]
             cur_roi_images = DataSet.resize_images(cur_roi_images, net_config.ROI_SIZE_W, self.rescale)
@@ -254,7 +263,6 @@ class DataSet:
                     for j in range(3):
                         cur_roi_images[i, :, :, j] = cur_roi_images[i, :, :, j] / cur_liver_densitys[i][j]
                         cur_expand_roi_images[i, :, :, j] = cur_expand_roi_images[i, :, :, j] / cur_liver_densitys[i][j]
-
             yield cur_roi_images, cur_expand_roi_images, cur_labels
 
 # if __name__ == '__main__':
@@ -263,12 +271,12 @@ class DataSet:
 #     train_roi_batch_images, train_expand_roi_batch_images, train_labels = train_batchdata.next()
 
 
-def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model_path=None, step_width=100):
-    train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/balance', 'train',
-                            rescale=True, divied_liver=False, expand_is_roi=True,
+def train(logits, images_tensor, expand_images_tensor, labels_tensor, is_training_tensor, save_model_path=None, step_width=100):
+    train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy', 'train',
+                            rescale=False, divied_liver=True, expand_is_roi=False,
                             full_roi_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train')
-    val_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/balance', 'val',
-                          rescale=True, divied_liver=False, expand_is_roi=True,
+    val_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy', 'val',
+                          rescale=False, divied_liver=True, expand_is_roi=False,
                           full_roi_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val')
 
     train_batchdata = train_dataset.get_next_batch(net_config.BATCH_SIZE)
@@ -353,7 +361,8 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
         o = sess.run(i, feed_dict={
             images_tensor: train_roi_batch_images,
             expand_images_tensor: train_expand_roi_batch_images,
-            labels_tensor: train_labels
+            labels_tensor: train_labels,
+            is_training_tensor: True
         })
 
         loss_value = o[1]
@@ -366,7 +375,8 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
             top1_error_value, accuracy_value, labels_values, predictions_values = sess.run([top1_error, accuracy_tensor, labels_tensor, predictions], feed_dict={
                 images_tensor: train_roi_batch_images,
                 expand_images_tensor: train_expand_roi_batch_images,
-                labels_tensor: train_labels
+                labels_tensor: train_labels,
+                is_training_tensor: True
             })
             predictions_values = np.argmax(predictions_values, axis=1)
             examples_per_sec = FLAGS.batch_size / float(duration)
@@ -400,7 +410,8 @@ def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model
                 {
                     images_tensor: val_roi_batch_images,
                     expand_images_tensor: val_expand_roi_batch_images,
-                    labels_tensor: val_labels
+                    labels_tensor: val_labels,
+                    is_training_tensor: False
                 })
             predictions_values = np.argmax(predictions_values, axis=1)
             # accuracy = eval_accuracy(predictions_values, labels_values)

@@ -13,10 +13,12 @@ phasenames=['NC', 'ART', 'PV']
 mhd_adjust = False
 
 
-model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/ROISlice/50000'
+model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/LSTM/npy_divided_liver'
+divided_liver = True
 global_step = tf.get_variable('global_step', [],
                               initializer=tf.constant_initializer(0),
                               trainable=False)
+is_training_tensor = tf.placeholder(dtype=tf.bool, shape=[])
 roi_images = tf.placeholder(
     shape=[
         None,
@@ -46,7 +48,7 @@ logits = inference_small(
     expand_roi_images,
     phase_names=['NC', 'ART', 'PV'],
     num_classes=4,
-    is_training=False,
+    is_training=is_training_tensor,
     batch_size=batch_size_tensor
 )
 predictions = tf.nn.softmax(logits)
@@ -69,8 +71,7 @@ step = sess.run(global_step)
 print 'step is ', step
 
 
-def resize_images(images, size):
-
+def resize_images(images, size, rescale=True):
     res = np.zeros(
         [
             len(images),
@@ -82,12 +83,24 @@ def resize_images(images, size):
     )
     for i in range(len(images)):
         img = Image.fromarray(np.asarray(images[i], np.uint8))
-        img = img.resize([size, size])
-        res[i, :, :, :] = np.asarray(img, np.float32) / 255.0
-        res[i, :, :, :] = res[i, :, :, :] - 0.5
-        res[i, :, :, :] = res[i, :, :, :] * 2.0
-    return res
+        # data augment
+        random_int = np.random.randint(0, 4)
+        img = img.rotate(random_int * 90)
+        random_int = np.random.randint(0, 2)
+        if random_int == 1:
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+        random_int = np.random.randint(0, 2)
+        if random_int == 1:
+            img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
+        img = img.resize([size, size])
+        if rescale:
+            res[i, :, :, :] = np.asarray(img, np.float32) / 255.0
+            res[i, :, :, :] = res[i, :, :, :] - 0.5
+            res[i, :, :, :] = res[i, :, :, :] * 2.0
+        else:
+            res[i, :, :, :] = np.asarray(img, np.float32)
+    return res
 
 def extract_patch(dir_name, suffix_name, patch_size, patch_step=1):
     '''
@@ -159,6 +172,8 @@ def generate_heatingmaps(data_dir, target_label, patch_size, save_dir):
         str(target_label),
         patch_size
     )
+    from load_liver_density import load_raw_liver_density
+    liver_density = load_raw_liver_density()
     for index, patches in enumerate(patches_arr):
         path = paths[index]
         basename = os.path.basename(path)
@@ -170,14 +185,22 @@ def generate_heatingmaps(data_dir, target_label, patch_size, save_dir):
                 #　restart = end_index - len(patches)
                 end_index = len(patches)
             cur_patches = patches[start_index: end_index]
-            # expand_patches = patches[start_index: end_index]
-            expand_patches = [mhd_images[index]] * len(cur_patches) # 使用完整的ＲＯＩ作为ｅｘｐａｎｄ　的ｐａｔｃｈ
-            roi_images_values = resize_images(cur_patches, net_config.ROI_SIZE_W)
-            expand_roi_images_values = resize_images(expand_patches, net_config.EXPAND_SIZE_W)
+            expand_patches = patches[start_index: end_index]
+            # expand_patches = [mhd_images[index]] * len(cur_patches) # 使用完整的ＲＯＩ作为ｅｘｐａｎｄ　的ｐａｔｃｈ
+            roi_images_values = resize_images(cur_patches, net_config.ROI_SIZE_W, rescale=(not divided_liver))
+            expand_roi_images_values = resize_images(expand_patches, net_config.EXPAND_SIZE_W, rescale=(not divided_liver))
+            cur_liver_densitys = [liver_density[os.path.basename(path)]] * len(cur_patches)
+            if divided_liver:
+                for i in range(len(roi_images_values)):
+                    for j in range(3):
+                        roi_images_values[i, :, :, j] = (1.0 * roi_images_values[i, :, :, j]) / (1.0 * cur_liver_densitys[i][j])
+                        expand_roi_images_values[i, :, :, j] = (1.0 * expand_roi_images_values[i, :, :, j]) / (
+                            1.0 * cur_liver_densitys[i][j])
             predicted_label_value = sess.run(predicted_label_tensor, feed_dict={
                 roi_images: roi_images_values,
                 expand_roi_images: expand_roi_images_values,
-                batch_size_tensor: len(roi_images_values)
+                batch_size_tensor: len(roi_images_values),
+                is_training_tensor: False
             })
             predicted_labels.extend(predicted_label_value)
             start_index = end_index
@@ -215,7 +238,7 @@ if __name__ == '__main__':
     #     9
     # )
     for subclass in ['train', 'val']:
-        for type in [0, 1, 2, 3]:
+        for type in [1, 2, 3, 0]:
             generate_heatingmaps(
                 '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/' + subclass,
                 type,

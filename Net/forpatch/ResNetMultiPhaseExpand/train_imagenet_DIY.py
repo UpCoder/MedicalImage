@@ -41,16 +41,16 @@ def main(_):
         ],
         dtype=np.int32
     )
+    is_training_tensor = tf.placeholder(dtype=tf.bool, shape=[])
     logits = inference_small(
         roi_images,
         expand_roi_images,
         phase_names=['NC', 'ART', 'PV'],
         num_classes=4,
-        is_training=True,
+        is_training=is_training_tensor
         )
-    save_model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/ROISlice/50000'
-    train(logits, roi_images, expand_roi_images, labels_tensor, save_model_path=save_model_path, step_width=100)
-
+    save_model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/BILSTM/npy_divided_liver'
+    train(logits, roi_images, expand_roi_images, labels_tensor, is_training_tensor, save_model_path=save_model_path, step_width=100)
 
 if __name__ == '__main__':
     tf.app.run()

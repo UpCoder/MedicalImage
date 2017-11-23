@@ -132,9 +132,12 @@ class ExtractPatch:
         :return: None
         '''
         count = 0
+
         names = os.listdir(dir_name)
         liver_density_dict = {}
         for name in names:
+            if name == '1443765_2701753_0_2_0':
+                print 'ok'
             if name.endswith(suffix_name):
                 # 只提取指定类型病灶的ｐａｔｃｈ
                 liver_density = []
@@ -142,7 +145,7 @@ class ExtractPatch:
                     image_path = glob(os.path.join(dir_name, name, phasename + '_Image*.mhd'))[0]
                     liver_mask_path = glob(os.path.join(dir_name, name, phasename + '*Liver*.mhd'))[0]
                     mask_path = os.path.join(dir_name, name, phasename + '_Registration.mhd')
-                    mhd_image = read_mhd_image(image_path, rejust=True)
+                    mhd_image = read_mhd_image(image_path, rejust=False)
                     mhd_image = np.squeeze(mhd_image)
                     # show_image(mhd_image)
                     mask_image = read_mhd_image(mask_path)
@@ -157,7 +160,7 @@ class ExtractPatch:
                     liver_density.append(average_value)
                 print name, liver_density
                 liver_density_dict[name] = liver_density
-        scio.savemat(os.path.join(save_dir, 'liver_density_' + str(subclass) + '_' + str(type) + '.mat'), liver_density_dict)
+        scio.savemat(os.path.join(save_dir, 'raw_liver_density_' + str(subclass) + '_' + str(type) + '.mat'), liver_density_dict)
         return liver_density_dict
 
 if __name__ == '__main__':
