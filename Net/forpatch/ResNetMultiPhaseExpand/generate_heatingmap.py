@@ -13,7 +13,7 @@ phasenames=['NC', 'ART', 'PV']
 mhd_adjust = False
 
 
-model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/patches_50000/2000.0'
+model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/ROISlice/50000'
 global_step = tf.get_variable('global_step', [],
                               initializer=tf.constant_initializer(0),
                               trainable=False)
@@ -37,12 +37,17 @@ expand_roi_images = tf.placeholder(
     dtype=np.float32,
     name='expand_roi_input'
 )
+batch_size_tensor = tf.placeholder(
+    tf.int32,
+    []
+)
 logits = inference_small(
     roi_images,
     expand_roi_images,
     phase_names=['NC', 'ART', 'PV'],
     num_classes=4,
     is_training=False,
+    batch_size=batch_size_tensor
 )
 predictions = tf.nn.softmax(logits)
 saver = tf.train.Saver(tf.all_variables())
@@ -97,6 +102,7 @@ def extract_patch(dir_name, suffix_name, patch_size, patch_step=1):
     names = os.listdir(dir_name)
     patches_arr = []
     paths = []
+    return_mhd_images = []
     for name in names:
         if name.endswith(suffix_name):
             # 只提取指定类型病灶的ｐａｔｃｈ
@@ -124,6 +130,7 @@ def extract_patch(dir_name, suffix_name, patch_size, patch_step=1):
                 # show_image(mhd_image)
             mask_images = convert2depthlaster(mask_images)
             mhd_images = convert2depthlaster(mhd_images)
+            return_mhd_images.append(mhd_images)
             # show_image(mhd_images)
             count += 1
             [width, height, depth] = list(np.shape(mhd_images))
@@ -144,10 +151,10 @@ def extract_patch(dir_name, suffix_name, patch_size, patch_step=1):
             if patch_count == 1:
                 continue
     print len(patches_arr)
-    return patches_arr, paths
+    return patches_arr, paths, return_mhd_images
 
 def generate_heatingmaps(data_dir, target_label, patch_size, save_dir):
-    patches_arr, paths = extract_patch(
+    patches_arr, paths, mhd_images = extract_patch(
         data_dir,
         str(target_label),
         patch_size
@@ -160,13 +167,17 @@ def generate_heatingmaps(data_dir, target_label, patch_size, save_dir):
         while True:
             end_index = start_index + net_config.BATCH_SIZE
             if end_index > len(patches):
+                #　restart = end_index - len(patches)
                 end_index = len(patches)
             cur_patches = patches[start_index: end_index]
+            # expand_patches = patches[start_index: end_index]
+            expand_patches = [mhd_images[index]] * len(cur_patches) # 使用完整的ＲＯＩ作为ｅｘｐａｎｄ　的ｐａｔｃｈ
             roi_images_values = resize_images(cur_patches, net_config.ROI_SIZE_W)
-            expand_roi_images_values = resize_images(cur_patches, net_config.EXPAND_SIZE_W)
+            expand_roi_images_values = resize_images(expand_patches, net_config.EXPAND_SIZE_W)
             predicted_label_value = sess.run(predicted_label_tensor, feed_dict={
                 roi_images: roi_images_values,
-                expand_roi_images: expand_roi_images_values
+                expand_roi_images: expand_roi_images_values,
+                batch_size_tensor: len(roi_images_values)
             })
             predicted_labels.extend(predicted_label_value)
             start_index = end_index

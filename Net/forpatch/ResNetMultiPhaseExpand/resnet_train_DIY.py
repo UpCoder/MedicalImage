@@ -1,7 +1,7 @@
 # -*- coding=utf-8 -*-
 from resnet import *
 import tensorflow as tf
-from Tools import changed_shape, calculate_acc_error, acc_binary_acc, shuffle_image_label
+from Tools import changed_shape, calculate_acc_error, acc_binary_acc, shuffle_image_label, read_mhd_image, get_boundingbox, convert2depthlaster
 from glob import glob
 import shutil
 import scipy.io as scio
@@ -14,7 +14,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', '/tmp/resnet_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_string('load_model_path', './models/DIY/patches_50000',
+tf.app.flags.DEFINE_string('load_model_path', '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/ROISlice/50000',
                            '''the model reload path''')
 tf.app.flags.DEFINE_string('save_model_path', './models', 'the saving path of the model')
 tf.app.flags.DEFINE_string('log_dir', './log/train',
@@ -23,16 +23,68 @@ tf.app.flags.DEFINE_string('log_val_dir', './log/val',
                            """The Summury output directory""")
 tf.app.flags.DEFINE_float('learning_rate', 0.01, "learning rate.")
 tf.app.flags.DEFINE_integer('max_steps', 10000, "max steps")
-tf.app.flags.DEFINE_boolean('resume', False,
+tf.app.flags.DEFINE_boolean('resume', True,
                             'resume from latest saved state')
 tf.app.flags.DEFINE_boolean('minimal_summaries', True,
                             'produce fewer summaries to save HD space')
-def load_patch(patch_path):
-    if patch_path.endswith('.jpg'):
-        return Image.open(patch_path)
-    if patch_path.endswith('.npy'):
-        return np.load(patch_path)
-
+def load_patch(patch_path, return_roi=False, parent_dir=None):
+    if not return_roi:
+        if patch_path.endswith('.jpg'):
+            return Image.open(patch_path)
+        if patch_path.endswith('.npy'):
+            return np.load(patch_path)
+    else:
+        phasenames = ['NC', 'ART', 'PV']
+        if patch_path.endswith('.jpg'):
+            basename = os.path.basename(patch_path)
+            basename = basename[: basename.rfind('_')]
+            mask_images = []
+            mhd_images = []
+            for phasename in phasenames:
+                image_path = glob(os.path.join(parent_dir, basename, phasename + '_Image*.mhd'))[0]
+                mask_path = os.path.join(parent_dir, basename, phasename + '_Registration.mhd')
+                mhd_image = read_mhd_image(image_path, rejust=True)
+                mhd_image = np.squeeze(mhd_image)
+                # show_image(mhd_image)
+                mask_image = read_mhd_image(mask_path)
+                mask_image = np.squeeze(mask_image)
+                [xmin, xmax, ymin, ymax] = get_boundingbox(mask_image)
+                # xmin -= 15
+                # xmax += 15
+                # ymin -= 15
+                # ymax += 15
+                mask_image = mask_image[xmin: xmax, ymin: ymax]
+                mhd_image = mhd_image[xmin: xmax, ymin: ymax]
+                mhd_image[mask_image != 1] = 0
+                mask_images.append(mask_image)
+                mhd_images.append(mhd_image)
+            mhd_images = convert2depthlaster(mhd_images)
+            return mhd_images
+        if patch_path.endswith('.npy'):
+            basename = os.path.basename(patch_path)
+            basename = basename[: basename.rfind('_')]
+            mask_images = []
+            mhd_images = []
+            for phasename in phasenames:
+                image_path = glob(os.path.join(parent_dir, basename, phasename + '_Image*.mhd'))[0]
+                mask_path = os.path.join(parent_dir, basename, phasename + '_Registration.mhd')
+                mhd_image = read_mhd_image(image_path, rejust=False)    # 因为存储的是ｎｐｙ格式，所以不进行窗宽窗位的调整
+                mhd_image = np.squeeze(mhd_image)
+                # show_image(mhd_image)
+                mask_image = read_mhd_image(mask_path)
+                mask_image = np.squeeze(mask_image)
+                [xmin, xmax, ymin, ymax] = get_boundingbox(mask_image)
+                # xmin -= 15
+                # xmax += 15
+                # ymin -= 15
+                # ymax += 15
+                mask_image = mask_image[xmin: xmax, ymin: ymax]
+                mhd_image = mhd_image[xmin: xmax, ymin: ymax]
+                mhd_image[mask_image != 1] = 0
+                mask_images.append(mask_image)
+                mhd_images.append(mhd_image)
+            mhd_images = convert2depthlaster(mhd_images)
+            return mhd_images
 def top_k_error(predictions, labels, k):
     batch_size = float(FLAGS.batch_size) #tf.shape(predictions)[0]
     in_top1 = tf.to_float(tf.nn.in_top_k(predictions, labels, k=1))
@@ -55,6 +107,11 @@ def calculate_accuracy(logits, labels, arg_index=1):
 class DataSet:
     @staticmethod
     def load_liver_density(data_dir='/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand'):
+        '''
+        加载调整过窗宽窗位的肝脏平均密度
+        :param data_dir: mat文件的路径
+        :return:dict类型的对象，key是我们的文件名，value是长度为３的数组代表的是三个Ｐｈａｓｅ的平均密度
+        '''
         mat_paths = glob(os.path.join(data_dir, 'liver_density*.mat'))
         total_liver_density = {}
         for mat_path in mat_paths:
@@ -66,7 +123,24 @@ class DataSet:
                     print 'Error', key
                 total_liver_density[key] = np.array(value).squeeze()
         return total_liver_density
-
+    @staticmethod
+    def load_raw_liver_density(data_dir='/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand'):
+        '''
+        加载原生的肝脏平均密度
+        :param data_dir: mat文件的路径
+        :return:dict类型的对象，key是我们的文件名，value是长度为３的数组代表的是三个Ｐｈａｓｅ的平均密度
+        '''
+        mat_paths = glob(os.path.join(data_dir, 'raw_liver_density*.mat'))
+        total_liver_density = {}
+        for mat_path in mat_paths:
+            liver_density = scio.loadmat(mat_path)
+            for (key, value) in liver_density.items():
+                if key.startswith('__'):
+                    continue
+                if key in total_liver_density.keys():
+                    print 'Error', key
+                total_liver_density[key] = np.array(value).squeeze()
+        return total_liver_density
     @staticmethod
     def resize_images(images, size, rescale=True):
         res = np.zeros(
@@ -80,6 +154,16 @@ class DataSet:
         )
         for i in range(len(images)):
             img = Image.fromarray(np.asarray(images[i], np.uint8))
+            # data augment
+            random_int = np.random.randint(0, 4)
+            img = img.rotate(random_int * 90)
+            random_int = np.random.randint(0, 2)
+            if random_int == 1:
+                img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            random_int = np.random.randint(0, 2)
+            if random_int == 1:
+                img = img.transpose(Image.FLIP_TOP_BOTTOM)
+
             img = img.resize([size, size])
             if rescale:
                 res[i, :, :, :] = np.asarray(img, np.float32) / 255.0
@@ -112,14 +196,16 @@ class DataSet:
             roi_paths, labels = shuffle_image_label(roi_paths, labels)
         return roi_paths, roi_paths, labels
 
-    def __init__(self, data_dir, state, pre_load=False, divied_liver=False, rescale=True):
+    def __init__(self, data_dir, state, pre_load=False, divied_liver=False, rescale=True, expand_is_roi=False, full_roi_path=None):
         '''
         DataSet的初始化函数
-        :param data_dir: 数据的文件夹
+        :param data_dir: 数据的文件夹，存储ｐａｔｃｈ的路径　一般结构是data_dir/train/0/*
         :param state:
-        :param pre_load:
-        :param divied_liver:
-        :param rescale:
+        :param pre_load: 是否将数据全部提前加载进来, 默认是Ｆａｌｓｅ
+        :param divied_liver: 是否除以肝脏的平均密度
+        :param rescale: 是否将像素值进行放缩，放缩到[-1, 1]之间
+        :param full_roi_path: 完整的存储ｒｏｉ的路径，不是存储ｐａｔｃｈ的路径
+        :param expand_is_roi: 决定ｅｘｐａｎｄ是否是ＲＯＩ　如果是则ｅｘｐａｎｄ代表的是完整的ＲＯＩ，否则ｅｘｐａｎｄ就是同一个ｐａｔｃｈ放缩的不同的ｓｃａｌｅ
         '''
         self.roi_paths, self.expand_roi_path, self.labels = DataSet.generate_paths(
             data_dir,
@@ -131,7 +217,8 @@ class DataSet:
         self.liver_density = DataSet.load_liver_density()
         self.divied_liver = divied_liver
         self.rescale = rescale
-
+        self.full_roi_path=full_roi_path
+        self.expand_is_roi = expand_is_roi
     def get_next_batch(self, batch_size):
         while True:
             cur_roi_paths = []
@@ -158,7 +245,7 @@ class DataSet:
                 self.start_index = end_index
             cur_liver_densitys = [self.liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for path in cur_roi_paths]
             cur_roi_images = [np.asarray(load_patch(path)) for path in cur_roi_paths]
-            cur_expand_roi_images = [np.asarray(load_patch(path)) for path in cur_expand_roi_paths]
+            cur_expand_roi_images = [np.asarray(load_patch(path, return_roi=self.expand_is_roi, parent_dir=self.full_roi_path)) for path in cur_expand_roi_paths]
             cur_roi_images = DataSet.resize_images(cur_roi_images, net_config.ROI_SIZE_W, self.rescale)
             cur_expand_roi_images = DataSet.resize_images(cur_expand_roi_images, net_config.EXPAND_SIZE_W, self.rescale)
             # print np.shape(cur_roi_images)
@@ -177,11 +264,12 @@ class DataSet:
 
 
 def train(logits, images_tensor, expand_images_tensor, labels_tensor, save_model_path=None, step_width=100):
-
     train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/balance', 'train',
-                            rescale=True, divied_liver=False)
+                            rescale=True, divied_liver=False, expand_is_roi=True,
+                            full_roi_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train')
     val_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/balance', 'val',
-                          rescale=True, divied_liver=False)
+                          rescale=True, divied_liver=False, expand_is_roi=True,
+                          full_roi_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val')
 
     train_batchdata = train_dataset.get_next_batch(net_config.BATCH_SIZE)
     val_batchdata = val_dataset.get_next_batch(net_config.BATCH_SIZE)

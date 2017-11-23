@@ -92,6 +92,7 @@ def inference_small(x, x_expand,
                     is_training,
                     num_blocks=3, # 6n+2 total weight layers will be used.
                     use_bias=False, # defaults to using batch norm
+                    batch_size=None,
                     num_classes=10):
     c = Config()
     c['is_training'] = tf.convert_to_tensor(is_training,
@@ -101,10 +102,10 @@ def inference_small(x, x_expand,
     c['fc_units_out'] = num_classes
     c['num_blocks'] = num_blocks
     c['num_classes'] = num_classes
-    return inference_small_config_lstm([x, x_expand], c, phase_names)
+    return inference_small_config_lstm([x, x_expand], c, phase_names, batch_size=batch_size)
 
 # ConvNet->reduce_mean->concat->FC
-def inference_small_config_lstm(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], ksize=[3, 3]):
+def inference_small_config_lstm(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], batch_size=None, ksize=[3, 3]):
     c['bottleneck'] = False
     c['stride'] = 1
     CONV_OUT = []
@@ -147,7 +148,10 @@ def inference_small_config_lstm(xs_expand, c, phase_names, xs_names=['ROI', 'EXP
     HIDDEN_SIZE = CONV_OUT[0].get_shape().as_list()[1]
     lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(HIDDEN_SIZE)
     cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * NUM_LAYERS)
-    initial_state = cell.zero_state(xs_expand[0].get_shape().as_list()[0], tf.float32)
+    if batch_size is None:
+        initial_state = cell.zero_state(xs_expand[0].get_shape().as_list()[0], tf.float32)
+    else:
+        initial_state = cell.zero_state(batch_size, tf.float32)
     state = initial_state
     outputs = []
     with tf.variable_scope('RNN_LSTM'):

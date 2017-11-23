@@ -155,6 +155,7 @@ class ExtractPatch:
                     pixel_num = np.sum(liver_mask_image != 0)
                     average_value = (1.0 * value_sum) / (1.0 * pixel_num)
                     liver_density.append(average_value)
+                print name, liver_density
                 liver_density_dict[name] = liver_density
         scio.savemat(os.path.join(save_dir, 'liver_density_' + str(subclass) + '_' + str(type) + '.mat'), liver_density_dict)
         return liver_density_dict
@@ -162,9 +163,11 @@ class ExtractPatch:
 if __name__ == '__main__':
     for subclass in ['train', 'val']:
         for typeid in ['0', '1', '2', '3']:
-            ExtractPatch.extract_patch_npy(
+            ExtractPatch.extract_liver_density(
                 '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/'+subclass,
                 typeid,
-                '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/' + subclass + '/' + typeid,
-                patch_size=9
+                # '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/' + subclass + '/' + typeid,
+                '/home/give/PycharmProjects/MedicalImage/Patch',
+                subclass=subclass,
+                type=typeid
             )
