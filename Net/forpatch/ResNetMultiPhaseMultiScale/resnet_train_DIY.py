@@ -27,12 +27,12 @@ tf.app.flags.DEFINE_boolean('resume', False,
                             'resume from latest saved state')
 tf.app.flags.DEFINE_boolean('minimal_summaries', True,
                             'produce fewer summaries to save HD space')
-def load_patch(patch_path, return_roi=False, parent_dir=None):
+def load_patch(patch_path, index=0, return_roi=False, parent_dir=None):
     if not return_roi:
         if patch_path.endswith('.jpg'):
             return Image.open(patch_path)
         if patch_path.endswith('.npy'):
-            return np.load(patch_path)
+            return np.load(patch_path)[index]
     else:
         phasenames = ['NC', 'ART', 'PV']
         if patch_path.endswith('.jpg'):
@@ -253,8 +253,8 @@ class DataSet:
                 cur_liver_densitys = [self.raw_liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for path in cur_roi_paths]
             else:
                 cur_liver_densitys = [self.liver_density[os.path.basename(path)[:os.path.basename(path).rfind('_')]] for path in cur_roi_paths]
-            cur_roi_images = [np.asarray(load_patch(path)) for path in cur_roi_paths]
-            cur_expand_roi_images = [np.asarray(load_patch(path, return_roi=self.expand_is_roi, parent_dir=self.full_roi_path)) for path in cur_expand_roi_paths]
+            cur_roi_images = [np.asarray(load_patch(path, index=1)) for path in cur_roi_paths]
+            cur_expand_roi_images = [np.asarray(load_patch(path, index=0, return_roi=self.expand_is_roi, parent_dir=self.full_roi_path)) for path in cur_expand_roi_paths]
             cur_roi_images = DataSet.resize_images(cur_roi_images, net_config.ROI_SIZE_W, self.rescale)
             cur_expand_roi_images = DataSet.resize_images(cur_expand_roi_images, net_config.EXPAND_SIZE_W, self.rescale)
             # print np.shape(cur_roi_images)
@@ -272,11 +272,11 @@ class DataSet:
 
 
 def train(logits, images_tensor, expand_images_tensor, labels_tensor, is_training_tensor, save_model_path=None, step_width=100):
-    train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy', 'train',
-                            rescale=True, divied_liver=False, expand_is_roi=False,
+    train_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_multiscale', 'train',
+                            rescale=True, divied_liver=False, expand_is_roi=True,
                             full_roi_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train')
-    val_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy', 'val',
-                          rescale=True, divied_liver=False, expand_is_roi=False,
+    val_dataset = DataSet('/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_multiscale', 'val',
+                          rescale=True, divied_liver=False, expand_is_roi=True,
                           full_roi_path='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val')
 
     train_batchdata = train_dataset.get_next_batch(net_config.BATCH_SIZE)

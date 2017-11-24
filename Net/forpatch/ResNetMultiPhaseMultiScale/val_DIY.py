@@ -131,7 +131,7 @@ def main(_):
         is_training=is_training_tensor,
         batch_size=batch_size_tensor
         )
-    model_path ='/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/BILSTM/npy_divided_liver/2500.0'
+    model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseMultiScale/model'
     predictions = tf.nn.softmax(logits)
     saver = tf.train.Saver(tf.all_variables())
     print predictions
@@ -169,7 +169,7 @@ def main(_):
         cur_paths = paths[start_index: end_index]
         cur_roi_images = [np.asarray(load_patch(path)) for path in cur_paths]
         cur_expand_roi_images = [
-            np.asarray(load_patch(path, return_roi=False, parent_dir='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val')) for path in
+            np.asarray(load_patch(path, return_roi=True, parent_dir='/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/val')) for path in
             cur_paths]
         cur_roi_images = resize_images(cur_roi_images, net_config.ROI_SIZE_W, True)
         cur_expand_roi_images = resize_images(cur_expand_roi_images, net_config.EXPAND_SIZE_W, True)

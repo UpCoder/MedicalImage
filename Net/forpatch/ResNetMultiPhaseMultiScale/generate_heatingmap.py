@@ -13,7 +13,7 @@ phasenames=['NC', 'ART', 'PV']
 mhd_adjust = False
 
 
-model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseExpand/models/DIY/BILSTM/npy_divided_liver/2500.0'
+model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseMultiScale/model'
 divided_liver = False
 global_step = tf.get_variable('global_step', [],
                               initializer=tf.constant_initializer(0),

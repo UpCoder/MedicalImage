@@ -123,6 +123,71 @@ class ExtractPatch:
         print count
 
     @staticmethod
+    def extract_patch_npy_multiscale(dir_name, suffix_name, save_dir, patch_sizes, patch_step=1):
+        '''
+        提取指定类型病灶的ｐａｔｃｈ 保存原始像素值，存成ｎｐｙ的格式,提取多种尺度
+        :param patch_sizes: 提取ｐａｔｃｈ的大小, array格式,[size1, size2] size1 > size2
+        :param dir_name: 目前所有病例的存储路径
+        :param suffix_name: 指定的病灶类型的后缀，比如说cyst 就是０
+        :param save_dir:　提取得到的ｐａｔｃｈ的存储路径
+        :param patch_step: 提取ｐａｔｃｈ的步长
+        :return: None
+        '''
+        count = 0
+        names = os.listdir(dir_name)
+        for name in names:
+            if name.endswith(suffix_name):
+                # 只提取指定类型病灶的ｐａｔｃｈ
+                mask_images = []
+                mhd_images = []
+                for phasename in phasenames:
+                    image_path = glob(os.path.join(dir_name, name, phasename + '_Image*.mhd'))[0]
+                    mask_path = os.path.join(dir_name, name, phasename + '_Registration.mhd')
+                    mhd_image = read_mhd_image(image_path)
+                    mhd_image = np.squeeze(mhd_image)
+                    # show_image(mhd_image)
+                    mask_image = read_mhd_image(mask_path)
+                    mask_image = np.squeeze(mask_image)
+                    [xmin, xmax, ymin, ymax] = get_boundingbox(mask_image)
+                    mask_image = mask_image[xmin: xmax, ymin: ymax]
+                    mhd_image = mhd_image[xmin: xmax, ymin: ymax]
+                    mhd_image[mask_image != 1] = 0
+                    mask_images.append(mask_image)
+                    mhd_images.append(mhd_image)
+                    # show_image(mhd_image)
+                mask_images = convert2depthlaster(mask_images)
+                mhd_images = convert2depthlaster(mhd_images)
+                count += 1
+                [width, height, depth] = list(np.shape(mhd_images))
+                patch_count = 1
+                if width * height >= 900:
+                    patch_step = int(math.sqrt(width * height / 100))
+                larget_patch_size = patch_sizes[0]
+                small_patch_size = patch_sizes[1]
+                for i in range(larget_patch_size / 2, width - larget_patch_size / 2, patch_step):
+                    for j in range(larget_patch_size / 2, height - larget_patch_size / 2, patch_step):
+                        larget_patch = mhd_images[i - larget_patch_size / 2:i + larget_patch_size / 2 + 1,
+                                    j - larget_patch_size / 2: j + larget_patch_size / 2 + 1, :]
+                        if (np.sum(mask_images[i - larget_patch_size / 2:i + larget_patch_size / 2,
+                                   j - larget_patch_size / 2: j + larget_patch_size / 2, :]) / (
+                                        (larget_patch_size - 1) * (larget_patch_size - 1) * 3)) < 0.9:
+                            continue
+
+                        small_patch = mhd_images[i - small_patch_size / 2: i + small_patch_size / 2 + 1,
+                                      j - small_patch_size / 2: j + small_patch_size / 2 + 1, :]
+                        cur_patch = [larget_patch, small_patch]
+                        save_path = os.path.join(save_dir, name + '_' + str(patch_count) + '.npy')
+                        np.save(save_path, np.array(cur_patch))
+                        patch_count += 1
+                if patch_count == 1:
+                    print 'agnore'
+                    continue
+                    # save_path = os.path.join(save_dir, name + '_' + str(patch_count) + '.png')
+                    # roi_image = Image.fromarray(np.asarray(mhd_images, np.uint8))
+                    # roi_image.save(save_path)
+        print count
+
+    @staticmethod
     def extract_liver_density(dir_name, suffix_name, save_dir, subclass, type):
         '''
         提取肝脏的平均密度
@@ -166,11 +231,10 @@ class ExtractPatch:
 if __name__ == '__main__':
     for subclass in ['train', 'val']:
         for typeid in ['0', '1', '2', '3']:
-            ExtractPatch.extract_liver_density(
+            ExtractPatch.extract_patch_npy_multiscale(
                 '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/'+subclass,
                 typeid,
-                # '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_nonlimited/' + subclass + '/' + typeid,
-                '/home/give/PycharmProjects/MedicalImage/Patch',
-                subclass=subclass,
-                type=typeid
+                '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_multiscale/' + subclass + '/' + typeid,
+                patch_sizes=[15, 9]
+
             )
