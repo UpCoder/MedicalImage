@@ -64,6 +64,6 @@ if __name__ == '__main__':
         generate_features_labels('/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/bilstm_multiscale_0.95')
     print np.shape(train_features), np.shape(train_labels), np.shape(val_features), np.shape(val_labels)
     from BoVW.classification import SVM, LinearSVM, KNN
-    predicted_label = SVM.do(train_features, train_labels, val_features, val_labels, adjust_parameters=True)
+    predicted_label = KNN.do(train_features, train_labels, val_features, val_labels, adjust_parameters=True)
     print predicted_label
     calculate_acc_error(predicted_label, val_labels)

@@ -229,12 +229,13 @@ class ExtractPatch:
         return liver_density_dict
 
 if __name__ == '__main__':
-    for subclass in ['train', 'val']:
+    # for subclass in ['train', 'val']:
+    for subclass in ['0', '1', '2']:
         for typeid in ['0', '1', '2', '3']:
             ExtractPatch.extract_patch_npy_multiscale(
-                '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/'+subclass,
+                '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train_cross/'+subclass,
                 typeid,
-                '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phase_npy_multiscale/' + subclass + '/' + typeid,
+                '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/cross_validation/' + subclass + '/' + typeid,
                 patch_sizes=[15, 9]
 
             )

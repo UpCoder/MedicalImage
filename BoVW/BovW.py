@@ -10,7 +10,7 @@ from multiprocessing import Pool
 from Net.forpatch.ResNetMultiPhaseMultiScale.resnet_train_DIY import DataSet
 phasenames=['NC', 'ART', 'PV']
 patch_size = 4
-divided_liver = False
+divided_liver = True
 
 def load_patch(patch_path):
     if patch_path.endswith('.jpg'):
@@ -55,7 +55,7 @@ def generate_density_feature_multidir(data_dirs):
     return np.array(features)
 
 
-def do_kmeans(fea, vocabulary_size=256):
+def do_kmeans(fea, vocabulary_size=128):
     kmeans_obj = KMeans(n_clusters=vocabulary_size, n_jobs=8).fit(fea)
     cluster_centroid_objs = kmeans_obj.cluster_centers_
     np.save(
@@ -173,7 +173,7 @@ def generate_train_val_features(cluster_centroid_path):
     print 'the shape of train features is ', np.shape(train_features)
     print 'the shape of val features is ', np.shape(val_features)
     scio.savemat(
-        './data_256_False.mat',
+        './data_128_False.mat',
         {
             'train_features': train_features,
             'train_labels': train_labels,
@@ -202,19 +202,19 @@ def generate_patches_representer(patches, cluster_centers):
     return represented_vector
 if __name__ == '__main__':
 
-    features = generate_density_feature_multidir(
-        [
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/0',
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/1',
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/2',
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/3',
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/0',
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/1',
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/2',
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/3',
-        ]
-    )
-    print np.shape(features)
-    do_kmeans(features)
+    # features = generate_density_feature_multidir(
+    #     [
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/0',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/1',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/2',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/3',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/0',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/1',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/2',
+    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/3',
+    #     ]
+    # )
+    # print np.shape(features)
+    # do_kmeans(features)
 
-    # generate_train_val_features('/home/give/PycharmProjects/MedicalImage/BoVW/cluster_centroid_objs_256.npy')
+    generate_train_val_features('/home/give/PycharmProjects/MedicalImage/BoVW/cluster_centroid_objs_128_False.npy')

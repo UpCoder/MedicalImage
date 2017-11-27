@@ -100,7 +100,7 @@ class LinearSVM:
         return predicts
 
 if __name__ == '__main__':
-    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data_256_False.mat')
+    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data_128_False.mat')
     train_features = data['train_features']
     val_features = data['val_features']
     train_labels = data['train_labels']
