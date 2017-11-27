@@ -3,8 +3,40 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 from Tools import calculate_acc_error
 import scipy.io as scio
+from sklearn.neighbors.classification import KNeighborsClassifier
 
 
+class KNN:
+    @staticmethod
+    def do(train_data, train_label, test_data, test_label=None, adjust_parameters=True):
+        train_data = np.array(train_data).squeeze()
+        train_label = np.array(train_label).squeeze()
+        test_data = np.array(test_data).squeeze()
+        if test_label is not None:
+            test_label = np.array(test_label).squeeze()
+        if not adjust_parameters:
+            knn = KNeighborsClassifier(n_neighbors=5, n_jobs=8)
+            knn.fit(train_data, train_label)
+            predicted_label = knn.predict(test_data)
+            if test_label is not None:
+                acc = accuracy_score(test_label, predicted_label)
+                print 'acc is ', acc
+            return predicted_label
+        else:
+            max_acc = 0.0
+            max_k = 0
+            max_predicted = None
+            for k in range(1, 11):
+                knn = KNeighborsClassifier(n_neighbors=k, n_jobs=8)
+                knn.fit(train_data, train_label)
+                predicted_label = knn.predict(test_data)
+                acc = accuracy_score(test_label, predicted_label)
+                if acc > max_acc:
+                    max_acc = acc
+                    max_k = k
+                    max_predicted = predicted_label
+            print 'max acc is ', max_acc, ' responding to k is ', max_k
+            return max_predicted
 class SVM:
     @staticmethod
     def do(train_data, train_label, test_data, test_label=None, adjust_parameters=False, C=1.0, gamma='auto'):
@@ -52,7 +84,7 @@ class SVM:
 
 class LinearSVM:
     @staticmethod
-    def do(train_data, train_label, test_data, test_label=None):
+    def do(train_data, train_label, test_data, test_label=None, adjust_parameters=True):
         train_data = np.array(train_data).squeeze()
         train_label = np.array(train_label).squeeze()
         test_data = np.array(test_data).squeeze()
@@ -65,10 +97,10 @@ class LinearSVM:
         if test_label is not None:
             acc = accuracy_score(test_label, predicts)
             print acc
-        return predicts, acc
+        return predicts
 
 if __name__ == '__main__':
-    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data.mat')
+    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data_256_False.mat')
     train_features = data['train_features']
     val_features = data['val_features']
     train_labels = data['train_labels']

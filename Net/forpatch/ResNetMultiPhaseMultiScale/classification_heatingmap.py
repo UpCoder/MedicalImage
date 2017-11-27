@@ -6,13 +6,13 @@ import scipy.io as scio
 from Tools import calculate_acc_error
 
 def get_label_from_pixelvalue(pixel_value):
-    if pixel_value[1] == 255 and pixel_value[2] == 255:
+    if pixel_value[1] >= 200 and pixel_value[2] >= 200:
         return 3
-    if pixel_value[0] == 255:
+    if pixel_value[0] >= 200:
         return 2
-    if pixel_value[1] == 255:
+    if pixel_value[1] >= 200:
         return 0
-    if pixel_value[2] == 255:
+    if pixel_value[2] >= 200:
         return 1
 
 def generate_feature_by_heatingmap(image):
@@ -26,7 +26,8 @@ def generate_feature_by_heatingmap(image):
     for i in range(shape[0]):
         for j in range(shape[1]):
             pixel_value = image[i, j]
-            features[0, get_label_from_pixelvalue(pixel_value)] += 1
+            index = get_label_from_pixelvalue(pixel_value)
+            features[0, index] += 1
     features /= np.sum(features)
     return np.array(features).squeeze()
 
@@ -60,9 +61,9 @@ def generate_features_labels(data_dir):
 
 if __name__ == '__main__':
     train_features, train_labels, val_features, val_labels = \
-        generate_features_labels('/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap')
+        generate_features_labels('/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/bilstm_multiscale_0.95')
     print np.shape(train_features), np.shape(train_labels), np.shape(val_features), np.shape(val_labels)
-    from BoVW.classification import SVM
+    from BoVW.classification import SVM, LinearSVM, KNN
     predicted_label = SVM.do(train_features, train_labels, val_features, val_labels, adjust_parameters=True)
     print predicted_label
     calculate_acc_error(predicted_label, val_labels)

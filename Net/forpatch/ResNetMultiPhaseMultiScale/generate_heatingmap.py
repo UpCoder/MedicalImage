@@ -185,8 +185,8 @@ def generate_heatingmaps(data_dir, target_label, patch_size, save_dir):
                 #　restart = end_index - len(patches)
                 end_index = len(patches)
             cur_patches = patches[start_index: end_index]
-            expand_patches = patches[start_index: end_index]
-            # expand_patches = [mhd_images[index]] * len(cur_patches) # 使用完整的ＲＯＩ作为ｅｘｐａｎｄ　的ｐａｔｃｈ
+            # expand_patches = patches[start_index: end_index]
+            expand_patches = [mhd_images[index]] * len(cur_patches) # 使用完整的ＲＯＩ作为ｅｘｐａｎｄ　的ｐａｔｃｈ
             roi_images_values = resize_images(cur_patches, net_config.ROI_SIZE_W, rescale=(not divided_liver))
             expand_roi_images_values = resize_images(expand_patches, net_config.EXPAND_SIZE_W, rescale=(not divided_liver))
             cur_liver_densitys = [liver_density[os.path.basename(path)]] * len(cur_patches)
@@ -237,8 +237,8 @@ if __name__ == '__main__':
     #     '0',
     #     9
     # )
-    for subclass in ['val']:
-        for type in [3, 0]:
+    for subclass in ['train', 'val']:
+        for type in [3, 2, 1, 0]:
             generate_heatingmaps(
                 '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/' + subclass,
                 type,

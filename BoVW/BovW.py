@@ -6,9 +6,11 @@ from sklearn.cluster import KMeans
 from glob import glob
 from Tools import read_mhd_image, get_boundingbox, convert2depthlaster
 import scipy.io as scio
+from multiprocessing import Pool
+from Net.forpatch.ResNetMultiPhaseMultiScale.resnet_train_DIY import DataSet
 phasenames=['NC', 'ART', 'PV']
 patch_size = 4
-
+divided_liver = False
 
 def load_patch(patch_path):
     if patch_path.endswith('.jpg'):
@@ -17,11 +19,18 @@ def load_patch(patch_path):
         return np.load(patch_path)
 
 def generate_density_feature(data_dir):
+    print 'extracting features start from ', data_dir
     names = os.listdir(data_dir)
     features = []
+    liver_density_dict = DataSet.load_raw_liver_density()
     for name in names:
-
-        array = np.array(load_patch(os.path.join(data_dir, name))).flatten()
+        array = np.array(load_patch(os.path.join(data_dir, name)))
+        if divided_liver:
+            array = np.asarray(array, np.float32)
+            liver_density = liver_density_dict[name[:name.rfind('_')]]
+            for i in range(len(phasenames)):
+                array[:, :, i] = (1.0 * array[:, :, i]) / (1.0 * liver_density[i])
+        array = array.flatten()
         if len(array) != patch_size * patch_size * 3:
             continue
         features.append(array)
@@ -31,10 +40,18 @@ def generate_density_feature(data_dir):
 
 def generate_density_feature_multidir(data_dirs):
     features = []
+    results = []
+    pool = Pool()
     for data_dir in data_dirs:
-        features.extend(
-            generate_density_feature(data_dir)
-        )
+        result = pool.apply_async(generate_density_feature, args=(data_dir, ))
+        results.append(result)
+
+    # pool.close()
+    # pool.join()
+    for index, data_dir in enumerate(data_dirs):
+
+        features.extend(results[index].get())
+        print 'extracting features end from ', data_dir
     return np.array(features)
 
 
@@ -42,7 +59,7 @@ def do_kmeans(fea, vocabulary_size=256):
     kmeans_obj = KMeans(n_clusters=vocabulary_size, n_jobs=8).fit(fea)
     cluster_centroid_objs = kmeans_obj.cluster_centers_
     np.save(
-        './cluster_centroid_objs_'+str(vocabulary_size)+'.npy',
+        './cluster_centroid_objs_'+str(vocabulary_size) + '_' + str(divided_liver) + '.npy',
         cluster_centroid_objs
     )
     print np.shape(cluster_centroid_objs)
@@ -156,7 +173,7 @@ def generate_train_val_features(cluster_centroid_path):
     print 'the shape of train features is ', np.shape(train_features)
     print 'the shape of val features is ', np.shape(val_features)
     scio.savemat(
-        './data.mat',
+        './data_256_False.mat',
         {
             'train_features': train_features,
             'train_labels': train_labels,
@@ -184,19 +201,20 @@ def generate_patches_representer(patches, cluster_centers):
         represented_vector[0, min_index] += 1
     return represented_vector
 if __name__ == '__main__':
-    # features = generate_density_feature_multidir(
-    #     [
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/0',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/1',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/2',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/3',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/0',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/1',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/2',
-    #         '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/3',
-    #     ]
-    # )
-    # print np.shape(features)
-    # do_kmeans(features)
 
-    generate_train_val_features('/home/give/PycharmProjects/MedicalImage/BoVW/cluster_centroid_objs_256.npy')
+    features = generate_density_feature_multidir(
+        [
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/0',
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/1',
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/2',
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/train/3',
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/0',
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/1',
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/2',
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/3phases_3*3/balance/val/3',
+        ]
+    )
+    print np.shape(features)
+    do_kmeans(features)
+
+    # generate_train_val_features('/home/give/PycharmProjects/MedicalImage/BoVW/cluster_centroid_objs_256.npy')

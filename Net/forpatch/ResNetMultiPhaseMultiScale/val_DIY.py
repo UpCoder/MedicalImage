@@ -131,7 +131,7 @@ def main(_):
         is_training=is_training_tensor,
         batch_size=batch_size_tensor
         )
-    model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseMultiScale/model'
+    model_path = '/home/give/PycharmProjects/MedicalImage/Net/forpatch/ResNetMultiPhaseMultiScale/model/bilstm'
     predictions = tf.nn.softmax(logits)
     saver = tf.train.Saver(tf.all_variables())
     print predictions
