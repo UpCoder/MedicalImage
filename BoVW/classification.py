@@ -35,6 +35,7 @@ class KNN:
                     max_acc = acc
                     max_k = k
                     max_predicted = predicted_label
+                print 'k = ', k, ' acc is ', acc
             print 'max acc is ', max_acc, ' responding to k is ', max_k
             return max_predicted
 class SVM:
@@ -46,24 +47,34 @@ class SVM:
         if test_label is not None:
             test_label = np.array(test_label).squeeze()
         if not adjust_parameters:
-            clf = SVC(C=C, gamma=gamma)
+            clf = SVC(C=C, gamma=gamma, probability=True)
             clf.fit(train_data, train_label)
-            predicts = clf.predict(test_data)
+            # predicts = clf.predict(test_data)
+            predicts = clf.predict_proba(test_data)
+            predicts = np.argmax(predicts, axis=1)
             acc = None
             if test_label is not None:
                 acc = accuracy_score(test_label, predicts)
                 # print acc
-            return acc
+            return predicts
         max_acc = 0.0
         max_predicted = None
         max_acc_train = 0.0
         target_c = None
         target_g = None
+        c_params = []
+        g_params = []
+        accs = []
         for param_c in range(-20, 20, 1):
             for param_g in range(-20, 20, 1):
-                clf = SVC(C=pow(2, param_c), gamma=pow(2, param_g))
+                c_params.append(param_c)
+                g_params.append(param_g)
+
+                clf = SVC(C=pow(2, param_c), gamma=pow(2, param_g), probability=True)
                 clf.fit(train_data, train_label)
-                predicts = clf.predict(test_data)
+                # predicts = clf.predict(test_data)
+                predicts = clf.predict_proba(test_data)
+                predicts = np.argmax(predicts, axis=1)
                 predicts_train = clf.predict(train_data)
                 acc_train = accuracy_score(train_label, predicts_train)
                 if acc_train > max_acc_train:
@@ -71,6 +82,7 @@ class SVM:
                 acc = None
                 if test_label is not None:
                     acc = accuracy_score(test_label, predicts)
+                    accs.append(acc)
                     # print acc
                     if acc > max_acc:
                         max_predicted = predicts
@@ -80,7 +92,7 @@ class SVM:
                     print 'training accuracy is ', acc_train, 'valication accuracy is ', acc
         print 'training max accuracy is ', max_acc_train, 'valication max accuracy is ', max_acc
         print 'target_c is ', target_c, ' target_g is ', target_g
-        return max_predicted
+        return max_predicted, c_params, g_params, accs
 
 class LinearSVM:
     @staticmethod
@@ -100,7 +112,7 @@ class LinearSVM:
         return predicts
 
 if __name__ == '__main__':
-    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data_128_False.mat')
+    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data_256_False.mat')
     train_features = data['train_features']
     val_features = data['val_features']
     train_labels = data['train_labels']

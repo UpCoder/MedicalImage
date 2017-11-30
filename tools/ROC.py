@@ -9,7 +9,7 @@ from sklearn.cross_validation import StratifiedKFold
 from sklearn.preprocessing import label_binarize
 import scipy.io as scio
 def get_probas_BoVW():
-    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data.mat')
+    data = scio.loadmat('/home/give/PycharmProjects/MedicalImage/BoVW/data_256_False.mat')
     train_features = data['train_features']
     val_features = data['val_features']
     train_labels = data['train_labels']
@@ -22,14 +22,29 @@ def get_probas_BoVW():
     probas_ = clf.predict_proba(val_features)
     val_labels = label_binarize(val_labels, [0, 1, 2, 3])
     return probas_, val_labels
-def get_probas_OurMethod():
-    from Net.forpatch.ResNetMultiPhaseExpand.classification_heatingmap import generate_features_labels
+def get_probas_THMG_PP():
+    from Net.forpatch.ResNetMultiPhaseMultiScale.classification_heatingmap import generate_features_labels
     train_features, train_labels, val_features, val_labels = \
         generate_features_labels(
-            '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/0.89')
-    clf = SVC(C=8192, gamma=256, probability=True)
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/crossvalidation/parallel/0')
+    clf = SVC(C=262144, gamma=0.03125, probability=True)
     clf.fit(train_features, train_labels)
     probas_ = clf.predict_proba(val_features)
+    val_labels = label_binarize(val_labels, [0, 1, 2, 3])
+    return probas_, val_labels
+
+def get_probas_OurMethod():
+    from Net.forpatch.ResNetMultiPhaseMultiScale.classification_heatingmap import generate_features_labels
+    train_features, train_labels, val_features, val_labels = \
+        generate_features_labels(
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/crossvalidation/0')
+    clf = SVC(C=0.125, gamma=8, probability=True)
+    clf.fit(train_features, train_labels)
+    probas_ = clf.predict_proba(val_features)
+    predictedlabel = np.argmax(probas_, axis=1)
+    print predictedlabel
+    from Tools import calculate_acc_error
+    calculate_acc_error(predictedlabel, val_labels)
     val_labels = label_binarize(val_labels, [0, 1, 2, 3])
     return probas_, val_labels
 def plot_roc(labels, probas, class_num, names, colors):
@@ -80,7 +95,7 @@ def plot_roc(labels, probas, class_num, names, colors):
 
 if __name__ == '__main__':
     # 通过训练数据，使用svm线性核建立模型，并对测试集进行测试，求出预测得分
-    probas_BoVW, label_BoVW = get_probas_BoVW()
+    probas_BoVW, label_BoVW = get_probas_THMG_PP()
     probas_OurMethod, label_OurMethod = get_probas_OurMethod()
-    plot_roc([label_BoVW, label_OurMethod], [probas_BoVW, probas_OurMethod], names=['BoVW', 'Our Method'],
+    plot_roc([label_BoVW, label_OurMethod], [probas_BoVW, probas_OurMethod], names=['THMG-PP', 'THMG-SP'],
              colors=[[[1, 0, 1], [0, 0, 0]], [[0, 0, 1], [0, 1, 1]]], class_num=4)

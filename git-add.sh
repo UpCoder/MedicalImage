@@ -28,3 +28,4 @@ git add ./Net/BaseNet/ResNetMultiPhaseExpand/*.py
 git add ./Net/forpatch/ResNetMultiPhaseExpand/*.py
 git add ./BoVW/*.py
 git add ./Net/forpatch/ResNetMultiPhaseMultiScale/*py
+git add ./Net/forpatch/cross_validation/*.py
