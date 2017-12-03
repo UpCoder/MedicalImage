@@ -102,7 +102,7 @@ def inference_small(x, x_expand,
     c['fc_units_out'] = num_classes
     c['num_blocks'] = num_blocks
     c['num_classes'] = num_classes
-    return inference_small_config_pre([x, x_expand], c, phase_names, batch_size=batch_size)
+    return inference_small_config_bilstm([x, x_expand], c, phase_names, batch_size=batch_size)
 
 # ConvNet->reduce_mean->concat->FC
 def inference_small_config_lstm(xs_expand, c, phase_names, xs_names=['ROI', 'EXPAND'], batch_size=None, ksize=[3, 3]):

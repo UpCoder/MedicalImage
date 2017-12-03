@@ -22,6 +22,16 @@ def get_probas_BoVW():
     probas_ = clf.predict_proba(val_features)
     val_labels = label_binarize(val_labels, [0, 1, 2, 3])
     return probas_, val_labels
+def get_probas_RAWHeating():
+    from Net.forpatch.ResNetMultiPhaseMultiScale.classification_heatingmap import generate_features_labels
+    train_features, train_labels, val_features, val_labels = \
+        generate_features_labels(
+            '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/heatingmap/raw_heatingmap')
+    clf = SVC(C=128, gamma=1, probability=True)
+    clf.fit(train_features, train_labels)
+    probas_ = clf.predict_proba(val_features)
+    val_labels = label_binarize(val_labels, [0, 1, 2, 3])
+    return probas_, val_labels
 def get_probas_THMG_PP():
     from Net.forpatch.ResNetMultiPhaseMultiScale.classification_heatingmap import generate_features_labels
     train_features, train_labels, val_features, val_labels = \
@@ -95,7 +105,7 @@ def plot_roc(labels, probas, class_num, names, colors):
 
 if __name__ == '__main__':
     # 通过训练数据，使用svm线性核建立模型，并对测试集进行测试，求出预测得分
-    probas_BoVW, label_BoVW = get_probas_THMG_PP()
+    probas_BoVW, label_BoVW = get_probas_RAWHeating()
     probas_OurMethod, label_OurMethod = get_probas_OurMethod()
-    plot_roc([label_BoVW, label_OurMethod], [probas_BoVW, probas_OurMethod], names=['THMG-PP', 'THMG-SP'],
+    plot_roc([label_BoVW, label_OurMethod], [probas_BoVW, probas_OurMethod], names=['Heating map', 'THMG-SP'],
              colors=[[[1, 0, 1], [0, 0, 0]], [[0, 0, 1], [0, 1, 1]]], class_num=4)
