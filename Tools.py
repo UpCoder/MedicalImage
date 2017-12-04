@@ -9,7 +9,21 @@ import gc
 import copy
 from Config import Config
 import glob
+import cv2
 
+
+def image_expand(image, size):
+    image = np.asarray(image)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
+    image = cv2.dilate(image, kernel)
+    return image
+
+
+def image_erode(image, size):
+    image = np.asarray(image)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
+    image = cv2.erode(image, kernel)
+    return image
 
 # 调整窗宽 窗位
 def rejust_pixel_value(image):

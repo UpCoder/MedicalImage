@@ -1,6 +1,6 @@
 # -*- coding=utf-8 -*-
 import os
-from Tools import read_mhd_image, get_boundingbox, convert2depthlaster, show_image
+from Tools import read_mhd_image, get_boundingbox, convert2depthlaster, show_image, image_expand, image_erode
 import numpy as np
 from glob import glob
 from PIL import Image
@@ -102,8 +102,8 @@ class ExtractPatch:
                 count += 1
                 [width, height, depth] = list(np.shape(mhd_images))
                 patch_count = 1
-                # if width * height >= 400:
-                #     patch_step = int(math.sqrt(width * height / 100))
+                if width * height >= 900:
+                    patch_step = int(math.sqrt(width * height / 100))
                 for i in range(patch_size / 2, width - patch_size / 2, patch_step):
                     for j in range(patch_size / 2, height - patch_size / 2, patch_step):
                         cur_patch = mhd_images[i - patch_size / 2:i + patch_size / 2,
@@ -113,6 +113,145 @@ class ExtractPatch:
                                 (patch_size - 1) * (patch_size - 1) * 3)) < 0.9:
                             continue
                         save_path = os.path.join(save_dir, name + '_' + str(patch_count) + '.npy')
+                        # print save_path
+                        np.save(save_path, np.array(cur_patch))
+                        patch_count += 1
+                if patch_count == 1:
+                    continue
+                    # save_path = os.path.join(save_dir, name + '_' + str(patch_count) + '.png')
+                    # roi_image = Image.fromarray(np.asarray(mhd_images, np.uint8))
+                    # roi_image.save(save_path)
+        print count
+
+    @staticmethod
+    def extract_interior_patch_npy(dir_name, suffix_name, save_dir, patch_size, patch_step=1):
+        '''
+        提取指定类型病灶的ｐａｔｃｈ 保存原始像素值，存成ｎｐｙ的格式
+        :param patch_size: 提取ｐａｔｃｈ的大小
+        :param dir_name: 目前所有病例的存储路径
+        :param suffix_name: 指定的病灶类型的后缀，比如说cyst 就是０
+        :param save_dir:　提取得到的ｐａｔｃｈ的存储路径
+        :param patch_step: 提取ｐａｔｃｈ的步长
+        :return: None
+        '''
+        count = 0
+        names = os.listdir(dir_name)
+        for name in names:
+            if name.endswith(suffix_name):
+                # 只提取指定类型病灶的ｐａｔｃｈ
+                mask_images = []
+                mhd_images = []
+                flag = True
+                for phasename in phasenames:
+                    image_path = glob(os.path.join(dir_name, name, phasename + '_Image*.mhd'))[0]
+                    mask_path = os.path.join(dir_name, name, phasename + '_Registration.mhd')
+                    mhd_image = read_mhd_image(image_path)
+                    mhd_image = np.squeeze(mhd_image)
+                    # show_image(mhd_image)
+                    mask_image = read_mhd_image(mask_path)
+                    mask_image = np.squeeze(mask_image)
+
+                    [xmin, xmax, ymin, ymax] = get_boundingbox(mask_image)
+                    if (xmax - xmin) <= 5 or (ymax - ymin) <= 5:
+                        flag = False
+                        continue
+                    mask_image = image_erode(mask_image, 5)
+                    [xmin, xmax, ymin, ymax] = get_boundingbox(mask_image)
+                    mask_image = mask_image[xmin: xmax, ymin: ymax]
+                    mhd_image = mhd_image[xmin: xmax, ymin: ymax]
+                    mhd_image[mask_image != 1] = 0
+                    mask_images.append(mask_image)
+                    mhd_images.append(mhd_image)
+                    # show_image(mhd_image)
+                if not flag:
+                    continue
+                mask_images = convert2depthlaster(mask_images)
+                mhd_images = convert2depthlaster(mhd_images)
+                count += 1
+                [width, height, depth] = list(np.shape(mhd_images))
+                patch_count = 1
+                if width * height >= 900:
+                    patch_step = int(math.sqrt(width * height / 100))
+                for i in range(patch_size / 2, width - patch_size / 2, patch_step):
+                    for j in range(patch_size / 2, height - patch_size / 2, patch_step):
+                        cur_patch = mhd_images[i - patch_size / 2:i + patch_size / 2,
+                                    j - patch_size / 2: j + patch_size / 2, :]
+                        if (np.sum(mask_images[i - patch_size / 2:i + patch_size / 2,
+                                   j - patch_size / 2: j + patch_size / 2, :]) / (
+                                        (patch_size - 1) * (patch_size - 1) * 3)) < 0.9:
+                            continue
+                        save_path = os.path.join(save_dir, name + '_' + str(patch_count) + '.npy')
+                        # print save_path
+                        np.save(save_path, np.array(cur_patch))
+                        patch_count += 1
+                if patch_count == 1:
+                    continue
+                    # save_path = os.path.join(save_dir, name + '_' + str(patch_count) + '.png')
+                    # roi_image = Image.fromarray(np.asarray(mhd_images, np.uint8))
+                    # roi_image.save(save_path)
+        print count
+
+    @staticmethod
+    def extract_boundary_patch_npy(dir_name, suffix_name, save_dir, patch_size, patch_step=1):
+        '''
+        提取指定类型病灶的ｐａｔｃｈ 保存原始像素值，存成ｎｐｙ的格式
+        :param patch_size: 提取ｐａｔｃｈ的大小
+        :param dir_name: 目前所有病例的存储路径
+        :param suffix_name: 指定的病灶类型的后缀，比如说cyst 就是０
+        :param save_dir:　提取得到的ｐａｔｃｈ的存储路径
+        :param patch_step: 提取ｐａｔｃｈ的步长
+        :return: None
+        '''
+        count = 0
+        names = os.listdir(dir_name)
+        for name in names:
+            if name.endswith(suffix_name):
+                # 只提取指定类型病灶的ｐａｔｃｈ
+                mask_images = []
+                mhd_images = []
+                flag = True
+                for phasename in phasenames:
+                    image_path = glob(os.path.join(dir_name, name, phasename + '_Image*.mhd'))[0]
+                    mask_path = os.path.join(dir_name, name, phasename + '_Registration.mhd')
+                    mhd_image = read_mhd_image(image_path)
+                    mhd_image = np.squeeze(mhd_image)
+                    # show_image(mhd_image)
+                    mask_image = read_mhd_image(mask_path)
+                    mask_image = np.squeeze(mask_image)
+
+                    [xmin, xmax, ymin, ymax] = get_boundingbox(mask_image)
+
+                    if (xmax - xmin) <= 5 or (ymax - ymin) <= 5:
+                        flag = False
+                        continue
+                    interior_boundary = image_erode(mask_image, 5)
+                    expand_boundary = image_expand(mask_image, 10)
+                    mask_image = np.asarray(np.logical_and(interior_boundary==0, expand_boundary==1), np.uint8)
+                    mask_image = mask_image[xmin: xmax, ymin: ymax]
+                    mhd_image = mhd_image[xmin: xmax, ymin: ymax]
+                    mhd_image[mask_image != 1] = 0
+                    mask_images.append(mask_image)
+                    mhd_images.append(mhd_image)
+                    # show_image(mhd_image)
+                if not flag:
+                    continue
+                mask_images = convert2depthlaster(mask_images)
+                mhd_images = convert2depthlaster(mhd_images)
+                count += 1
+                [width, height, depth] = list(np.shape(mhd_images))
+                patch_count = 1
+                # if width * height >= 900:
+                #     patch_step = int(math.sqrt(width * height / 100))
+                for i in range(patch_size / 2, width - patch_size / 2, patch_step):
+                    for j in range(patch_size / 2, height - patch_size / 2, patch_step):
+                        cur_patch = mhd_images[i - patch_size / 2:i + patch_size / 2,
+                                    j - patch_size / 2: j + patch_size / 2, :]
+                        if (np.sum(mask_images[i - patch_size / 2:i + patch_size / 2,
+                                   j - patch_size / 2: j + patch_size / 2, :]) / (
+                                        (patch_size - 1) * (patch_size - 1) * 3)) < 0.7:
+                            continue
+                        save_path = os.path.join(save_dir, name + '_' + str(patch_count) + '.npy')
+                        # print save_path
                         np.save(save_path, np.array(cur_patch))
                         patch_count += 1
                 if patch_count == 1:
@@ -201,8 +340,6 @@ class ExtractPatch:
         names = os.listdir(dir_name)
         liver_density_dict = {}
         for name in names:
-            if name == '1443765_2701753_0_2_0':
-                print 'ok'
             if name.endswith(suffix_name):
                 # 只提取指定类型病灶的ｐａｔｃｈ
                 liver_density = []
@@ -229,13 +366,23 @@ class ExtractPatch:
         return liver_density_dict
 
 if __name__ == '__main__':
-    # for subclass in ['train', 'val']:
-    for subclass in ['0', '1', '2']:
-        for typeid in ['0', '1', '2', '3']:
-            ExtractPatch.extract_patch_npy_multiscale(
-                '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/train_cross/'+subclass,
+    for subclass in ['train', 'val', 'test']:
+    # for subclass in ['0', '1', '2']:
+        for typeid in ['0', '1', '2', '3', '4']:
+            ExtractPatch.extract_boundary_patch_npy(
+                '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/ICIP/'+subclass,
                 typeid,
-                '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/cross_validation/' + subclass + '/' + typeid,
-                patch_sizes=[15, 9]
-
+                '/home/give/Documents/dataset/MedicalImage/MedicalImage/Patches/ICIP/idit/boundary/' + subclass + '/' + typeid,
+                patch_size=9
             )
+
+    # 提取肝脏的平均密度
+    # for subclass in ['train', 'val', 'test']:
+    #     for typeid in ['0', '1', '2', '3', '4']:
+    #         ExtractPatch.extract_liver_density(
+    #             '/home/give/Documents/dataset/MedicalImage/MedicalImage/SL_TrainAndVal/ICIP/' + subclass,
+    #             typeid,
+    #             save_dir='./',
+    #             subclass=subclass,
+    #             type=typeid
+    #         )
