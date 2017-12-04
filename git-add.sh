@@ -29,3 +29,11 @@ git add ./Net/forpatch/ResNetMultiPhaseExpand/*.py
 git add ./BoVW/*.py
 git add ./Net/forpatch/ResNetMultiPhaseMultiScale/*py
 git add ./Net/forpatch/cross_validation/*.py
+git add ./Net/ICIP/5-class/Patch_ROI/*.py
+git add ./Net/ICIP/5-class/ROI/*.py
+git add ./Net/ICIP/5-class/Patched/*.py
+
+git add ./Net/ICIP/3-class/Patch_ROI/*.py
+git add ./Net/ICIP/3-class/ROI/*.py
+git add ./Net/ICIP/3-class/Patched/*.py
+git add ./BoVW-Idit/*.py
